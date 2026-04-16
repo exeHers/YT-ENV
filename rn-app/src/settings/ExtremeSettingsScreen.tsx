@@ -1,4 +1,4 @@
-import React, {useMemo, useState} from 'react';
+import React, {useEffect, useMemo, useState} from 'react';
 import {Pressable, SafeAreaView, ScrollView, StyleSheet, Switch, Text, TextInput, View} from 'react-native';
 import {SettingsCategory, SettingItem, createDefaultExtremeSettings} from './ExtremeSettingsModels';
 import {EqualizerPlugin} from '../plugins/eq/EqualizerPlugin';
@@ -62,6 +62,21 @@ export function ExtremeSettingsScreen({equalizerPlugin, onOpenSync}: Props): Rea
       }),
     }))
     .filter(category => category.items.length > 0);
+
+  const visibleCategoryIds = useMemo(
+    () => visibleCategories.map(c => c.id),
+    [visibleCategories],
+  );
+
+  // Progressive disclosure: when searching, auto-expand categories that match.
+  useEffect(() => {
+    if (!search.trim()) return;
+    setExpanded(current => {
+      const next = {...current};
+      for (const id of visibleCategoryIds) next[id] = true;
+      return next;
+    });
+  }, [search, visibleCategoryIds]);
 
   return (
     <SafeAreaView style={[styles.root, !isPureAmoledEnabled && styles.rootElevated]}>

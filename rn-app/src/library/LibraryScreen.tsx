@@ -1,6 +1,7 @@
 import React, {useEffect, useState} from 'react';
-import {Pressable, SafeAreaView, StyleSheet, Text, View} from 'react-native';
+import {Pressable, StyleSheet, Text, View} from 'react-native';
 import {FlashList} from '@shopify/flash-list';
+import {SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
 import {PipedClient} from '../network/pipedClient';
 import {useSessionStore} from '../state/sessionStore';
 import {useThemeStore} from '../state/themeStore';
@@ -8,6 +9,7 @@ import {useThemeStore} from '../state/themeStore';
 type LibraryItem = {id: string; title: string; artist: string; type: 'liked' | 'playlist'};
 
 export function LibraryScreen({onOpenSync}: {onOpenSync: () => void}): React.JSX.Element {
+  const insets = useSafeAreaInsets();
   const isSynced = useSessionStore(state => state.isSynced);
   const colors = useThemeStore(state => state.colors);
   const [items, setItems] = useState<LibraryItem[]>([]);
@@ -44,7 +46,7 @@ export function LibraryScreen({onOpenSync}: {onOpenSync: () => void}): React.JSX
 
   if (!isSynced) {
     return (
-      <SafeAreaView style={[styles.root, {backgroundColor: colors.background}]}>
+      <SafeAreaView style={[styles.root, {backgroundColor: colors.background, paddingTop: insets.top + 8, paddingBottom: insets.bottom + 4}]}>
         <View style={[styles.syncPrompt, {backgroundColor: colors.surface, borderColor: colors.border}]}>
           <Text style={[styles.title, {color: colors.text}]}>Sync required for Library</Text>
           <Text style={[styles.subtitle, {color: colors.mutedText}]}>
@@ -59,7 +61,7 @@ export function LibraryScreen({onOpenSync}: {onOpenSync: () => void}): React.JSX
   }
 
   return (
-    <SafeAreaView style={[styles.root, {backgroundColor: colors.background}]}>
+    <SafeAreaView style={[styles.root, {backgroundColor: colors.background, paddingTop: insets.top + 8, paddingBottom: insets.bottom + 4}]}>
       <Text style={[styles.status, {color: colors.mutedText}]}>{status}</Text>
       <FlashList
         data={items}

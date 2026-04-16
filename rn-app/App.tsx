@@ -1,5 +1,6 @@
 import React, {useEffect, useMemo, useState} from 'react';
-import {Modal, Pressable, SafeAreaView, StyleSheet, Text, View} from 'react-native';
+import {Modal, Pressable, StyleSheet, Text, View} from 'react-native';
+import {SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
 import {PluginRegistry} from './src/plugins/Plugin';
 import {AuthPlugin, AuthProvider, AuthSession} from './src/plugins/auth/AuthPlugin';
 import {PipedClient} from './src/network/pipedClient';
@@ -38,6 +39,7 @@ export default function App(): React.JSX.Element {
   const [showAuth, setShowAuth] = useState(false);
   const [showSyncSuccess, setShowSyncSuccess] = useState(false);
   const [activeTab, setActiveTab] = useState<TabId>('home');
+  const insets = useSafeAreaInsets();
   const tabLayout = useThemeStore(state => state.tabLayout);
   const colors = useThemeStore(state => state.colors);
   const appName = useThemeStore(state => state.appName);
@@ -94,7 +96,15 @@ export default function App(): React.JSX.Element {
   void services.pipedClient;
 
   return (
-    <SafeAreaView style={[styles.root, {backgroundColor: colors.background}]}>
+      <SafeAreaView
+        style={[
+          styles.root,
+          {
+            backgroundColor: colors.background,
+            paddingTop: insets.top,
+            paddingBottom: insets.bottom,
+          },
+        ]}>
       <ProfileSyncCard onPressSync={() => setShowAuth(true)} />
       <View style={[styles.tabRow, {opacity: tabBarOpacity}]}>
         {tabLayout.map(tab => (

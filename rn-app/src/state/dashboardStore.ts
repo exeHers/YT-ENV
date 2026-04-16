@@ -40,7 +40,7 @@ const loadInitial = (): PersistedDashboard => {
     totalListeningMs: 0,
     totalStreams: 0,
     adsSkipped: 0,
-    payoutRatePerStreamUsd: 0.0035,
+    payoutRatePerStreamUsd: 0.004,
   };
 
   const raw = mmkvStorage?.getString(STORAGE_KEY);
@@ -51,7 +51,7 @@ const loadInitial = (): PersistedDashboard => {
       totalListeningMs: Number(parsed.totalListeningMs) || 0,
       totalStreams: Number(parsed.totalStreams) || 0,
       adsSkipped: Number(parsed.adsSkipped) || 0,
-      payoutRatePerStreamUsd: Number(parsed.payoutRatePerStreamUsd) || 0.0035,
+      payoutRatePerStreamUsd: Number(parsed.payoutRatePerStreamUsd) || 0.004,
     };
   } catch {
     return fallback;

@@ -1,20 +1,20 @@
 import React, {useEffect} from 'react';
 import {StyleSheet, View} from 'react-native';
 import Animated, {Easing, useAnimatedStyle, useSharedValue, withRepeat, withTiming} from 'react-native-reanimated';
-import {useSettingsStore} from '../state/settingsStore';
+import {useThemeStore} from '../state/themeStore';
 
 export function EdgeLightWrapper({active}: {active: boolean}): React.JSX.Element {
   const pulse = useSharedValue(0.15);
-  const color = String(useSettingsStore(state => state.values['edgeLight.color'] || '#BD00FF'));
-  const speed = Number(useSettingsStore(state => state.values['edgeLight.speed'] || 1800));
-  const thickness = Number(useSettingsStore(state => state.values['edgeLight.thickness'] || 3));
-  const glowOpacity = Number(useSettingsStore(state => state.values['edgeLight.glowOpacity'] || 0.45));
+  const edgeColor = useThemeStore(state => state.edgeColor);
+  const edgeSpeedMs = useThemeStore(state => state.edgeSpeedMs);
+  const edgeThickness = useThemeStore(state => state.edgeThickness);
+  const edgeGlowOpacity = useThemeStore(state => state.edgeGlowOpacity);
 
   useEffect(() => {
     if (!active) return;
     pulse.value = withRepeat(
-      withTiming(glowOpacity, {
-        duration: Math.max(600, speed),
+      withTiming(edgeGlowOpacity, {
+        duration: Math.max(1800, edgeSpeedMs),
         easing: Easing.inOut(Easing.quad),
       }),
       -1,
@@ -27,9 +27,9 @@ export function EdgeLightWrapper({active}: {active: boolean}): React.JSX.Element
   return (
     <View pointerEvents="none" style={styles.container}>
       <Animated.View style={[styles.edge, styles.top, animated, {height: thickness, backgroundColor: color}]} />
-      <Animated.View style={[styles.edge, styles.bottom, animated, {height: thickness, backgroundColor: color}]} />
-      <Animated.View style={[styles.edgeVertical, styles.left, animated, {width: thickness, backgroundColor: color}]} />
-      <Animated.View style={[styles.edgeVertical, styles.right, animated, {width: thickness, backgroundColor: color}]} />
+      <Animated.View style={[styles.edge, styles.bottom, animated, {height: edgeThickness, backgroundColor: edgeColor}]} />
+      <Animated.View style={[styles.edgeVertical, styles.left, animated, {width: edgeThickness, backgroundColor: edgeColor}]} />
+      <Animated.View style={[styles.edgeVertical, styles.right, animated, {width: edgeThickness, backgroundColor: edgeColor}]} />
     </View>
   );
 }

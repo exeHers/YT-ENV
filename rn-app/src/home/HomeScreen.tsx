@@ -1,6 +1,7 @@
 import React, {useEffect, useMemo, useState} from 'react';
-import {Image, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View} from 'react-native';
+import {Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View} from 'react-native';
 import {FlashList} from '@shopify/flash-list';
+import {SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
 import {PipedClient} from '../network/pipedClient';
 import {useSessionStore} from '../state/sessionStore';
 import {useDashboardStore} from '../state/dashboardStore';
@@ -19,6 +20,7 @@ export function HomeScreen(): React.JSX.Element {
   const colors = useThemeStore(state => state.colors);
   const radius = useThemeStore(state => state.radius);
   const spacing = useThemeStore(state => state.spacing);
+  const insets = useSafeAreaInsets();
   const [query, setQuery] = useState('');
   const [sections, setSections] = useState<Section[]>([]);
   const [loading, setLoading] = useState(false);
@@ -30,12 +32,18 @@ export function HomeScreen(): React.JSX.Element {
       setLoading(true);
       setError(null);
       try {
-        await refreshMixIfNeeded();
-        const [trendingRaw, darkRaw, moodRaw] = await Promise.all([
-          PipedClient.getTrending('US'),
-          PipedClient.search('dark industrial phonk', 'music_songs'),
-          PipedClient.search('dark trap mood', 'music_songs'),
-        ]);
+        // Always try trending first so guest mode has content even if mix/search fail.
+        const trendingRaw = await PipedClient.getTrending('US');
+        let darkRaw: Array<Record<string, unknown>> = [];
+        let moodRaw: Array<Record<string, unknown>> = [];
+        try {
+          await refreshMixIfNeeded();
+          darkRaw = (await PipedClient.search('dark industrial phonk', 'music_songs')) as Array<Record<string, unknown>>;
+          moodRaw = (await PipedClient.search('dark trap mood', 'music_songs')) as Array<Record<string, unknown>>;
+        } catch {
+          // Non-fatal: keep trending + any existing mix.
+        }
+
         const toTrack = (item: Record<string, unknown>, idx: number): MixTrack => ({
           id: String(item.url || item.title || idx),
           title: String(item.title || 'Unknown Track'),
@@ -44,18 +52,20 @@ export function HomeScreen(): React.JSX.Element {
           avatar: String(item.uploaderAvatar || `https://picsum.photos/seed/avatar-${idx}/120/120`),
           url: item.url ? String(item.url) : undefined,
         });
-        const trending = (trendingRaw as Array<Record<string, unknown>>).slice(0, 20).map(toTrack);
-        const darkVibes = (darkRaw as Array<Record<string, unknown>>).slice(0, 20).map(toTrack);
-        const moods = (moodRaw as Array<Record<string, unknown>>).slice(0, 20).map(toTrack);
+
+        const trending = (trendingRaw as Array<Record<string, unknown>>).slice(0, 24).map(toTrack);
+        const darkVibes = darkRaw.slice(0, 20).map(toTrack);
+        const moods = moodRaw.slice(0, 20).map(toTrack);
         const recentSpino = [...weeklyMix].slice(0, 20);
 
-        setSections([
-          {id: 'weeklyMix', title: 'Weekly Vibe Mix', tracks: weeklyMix},
-          {id: 'darkIndustrial', title: 'Dark Industrial Vibes', tracks: darkVibes},
-          {id: 'trending', title: 'Trending Now', tracks: trending},
-          {id: 'spino', title: 'Recent Spino', tracks: recentSpino},
-          {id: 'moods', title: 'Mood: Neon Trap', tracks: moods},
-        ]);
+        const nextSections: Section[] = [];
+        if (weeklyMix.length) nextSections.push({id: 'weeklyMix', title: 'Weekly Vibe Mix', tracks: weeklyMix});
+        nextSections.push({id: 'trending', title: 'Trending Now', tracks: trending});
+        if (darkVibes.length) nextSections.push({id: 'darkIndustrial', title: 'Dark Industrial Vibes', tracks: darkVibes});
+        if (recentSpino.length) nextSections.push({id: 'spino', title: 'Recent Spino', tracks: recentSpino});
+        if (moods.length) nextSections.push({id: 'moods', title: 'Mood: Neon Trap', tracks: moods});
+
+        setSections(nextSections);
         setStatus(isSynced ? 'Synced premium home loaded' : 'Guest premium home loaded');
       } catch (feedError) {
         setError(feedError instanceof Error ? feedError.message : 'Failed to load home feed');
@@ -66,7 +76,8 @@ export function HomeScreen(): React.JSX.Element {
       }
     };
     void loadFeed();
-  }, [isSynced, refreshMixIfNeeded, weeklyMix]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isSynced]);
 
   const onSearch = async () => {
     if (!query.trim()) return;
@@ -112,7 +123,7 @@ export function HomeScreen(): React.JSX.Element {
   );
 
   return (
-    <SafeAreaView style={[styles.root, {backgroundColor: colors.background}]}>
+    <SafeAreaView style={[styles.root, {backgroundColor: colors.background, paddingTop: insets.top + 8, paddingBottom: insets.bottom + 4}]}>
       <Text style={[styles.title, {color: colors.text}]}>{title}</Text>
       <Text style={[styles.subtitle, {color: colors.mutedText}]}>
         {isSynced ? 'Account-specific feed, recommendations, and recent activity.' : 'Browse and play any song without account sync.'}

@@ -1,5 +1,6 @@
 import React, {useState} from 'react';
-import {Linking, Platform, Pressable, SafeAreaView, ScrollView, StyleSheet, Switch, Text, View} from 'react-native';
+import {Linking, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View} from 'react-native';
+import {SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
 import {SyncBadge} from '../ui/SyncBadge';
 import {useSettingsStore} from '../state/settingsStore';
 import {useThemeStore} from '../state/themeStore';
@@ -18,6 +19,7 @@ export function ExtremeSettingsScreen({onOpenSync}: Props): React.JSX.Element {
   const currentInstance = useDebugStore(state => state.currentInstance);
   const setInstance = useDebugStore(state => state.setInstance);
   const [eqStatus, setEqStatus] = useState('External EQ idle');
+  const insets = useSafeAreaInsets();
 
   const openExternalEqualizer = async () => {
     if (Platform.OS !== 'android') {
@@ -37,7 +39,7 @@ export function ExtremeSettingsScreen({onOpenSync}: Props): React.JSX.Element {
   };
 
   return (
-    <SafeAreaView style={[styles.root, {backgroundColor: colors.background}]}>
+    <SafeAreaView style={[styles.root, {backgroundColor: colors.background, paddingTop: insets.top + 8, paddingBottom: insets.bottom + 4}]}>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.headerRow}>
           <Text style={[styles.pageTitle, {color: colors.text}]}>Extreme Settings</Text>

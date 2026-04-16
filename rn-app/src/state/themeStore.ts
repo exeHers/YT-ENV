@@ -10,6 +10,10 @@ type ThemeState = {
   spacing: number;
   glassBlur: number;
   tabBarOpacity: number;
+  edgeColor: string;
+  edgeSpeedMs: number;
+  edgeThickness: number;
+  edgeGlowOpacity: number;
   colors: {
     background: string;
     surface: string;
@@ -28,6 +32,10 @@ type ThemeState = {
   setTabLayout: (layout: TabId[]) => void;
   setGlassBlur: (value: number) => void;
   setTabBarOpacity: (value: number) => void;
+  setEdgeColor: (value: string) => void;
+  setEdgeSpeedMs: (value: number) => void;
+  setEdgeThickness: (value: number) => void;
+  setEdgeGlowOpacity: (value: number) => void;
 };
 
 const defaultLayout: TabId[] = ['home', 'library', 'dashboard', 'creation', 'settings', 'debug'];
@@ -40,6 +48,10 @@ export const useThemeStore = create<ThemeState>(set => ({
   spacing: 12,
   glassBlur: 14,
   tabBarOpacity: 0.9,
+  edgeColor: '#BD00FF',
+  edgeSpeedMs: 2600,
+  edgeThickness: 3,
+  edgeGlowOpacity: 0.4,
   colors: {
     background: '#060606',
     surface: '#141414',
@@ -67,4 +79,8 @@ export const useThemeStore = create<ThemeState>(set => ({
     }),
   setGlassBlur: glassBlur => set({glassBlur}),
   setTabBarOpacity: tabBarOpacity => set({tabBarOpacity}),
+  setEdgeColor: edgeColor => set({edgeColor}),
+  setEdgeSpeedMs: edgeSpeedMs => set({edgeSpeedMs: Math.max(1200, edgeSpeedMs)}),
+  setEdgeThickness: edgeThickness => set({edgeThickness: Math.max(1, edgeThickness)}),
+  setEdgeGlowOpacity: edgeGlowOpacity => set({edgeGlowOpacity: Math.min(1, Math.max(0.1, edgeGlowOpacity))}),
 }));

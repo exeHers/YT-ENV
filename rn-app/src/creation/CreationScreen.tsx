@@ -14,6 +14,10 @@ export function CreationScreen(): React.JSX.Element {
   const tabLayout = useThemeStore(state => state.tabLayout);
   const glassBlur = useThemeStore(state => state.glassBlur);
   const tabBarOpacity = useThemeStore(state => state.tabBarOpacity);
+  const edgeColor = useThemeStore(state => state.edgeColor);
+  const edgeSpeedMs = useThemeStore(state => state.edgeSpeedMs);
+  const edgeThickness = useThemeStore(state => state.edgeThickness);
+  const edgeGlowOpacity = useThemeStore(state => state.edgeGlowOpacity);
   const setAppName = useThemeStore(state => state.setAppName);
   const setFontFamily = useThemeStore(state => state.setFontFamily);
   const setTextScale = useThemeStore(state => state.setTextScale);
@@ -23,6 +27,10 @@ export function CreationScreen(): React.JSX.Element {
   const setTabLayout = useThemeStore(state => state.setTabLayout);
   const setGlassBlur = useThemeStore(state => state.setGlassBlur);
   const setTabBarOpacity = useThemeStore(state => state.setTabBarOpacity);
+  const setEdgeColor = useThemeStore(state => state.setEdgeColor);
+  const setEdgeSpeedMs = useThemeStore(state => state.setEdgeSpeedMs);
+  const setEdgeThickness = useThemeStore(state => state.setEdgeThickness);
+  const setEdgeGlowOpacity = useThemeStore(state => state.setEdgeGlowOpacity);
 
   const rotateTab = (index: number) => {
     const next = [...tabLayout];
@@ -57,6 +65,19 @@ export function CreationScreen(): React.JSX.Element {
         <AdjustRow label="Global Spacing" value={spacing} onMinus={() => setSpacing(Math.max(4, spacing - 1))} onPlus={() => setSpacing(Math.min(32, spacing + 1))} colors={colors} />
         <AdjustRow label="Glass Blur Intensity" value={glassBlur} onMinus={() => setGlassBlur(Math.max(0, glassBlur - 1))} onPlus={() => setGlassBlur(Math.min(40, glassBlur + 1))} colors={colors} />
         <AdjustRow label="Tab Transparency" value={Number(tabBarOpacity.toFixed(2))} onMinus={() => setTabBarOpacity(Math.max(0.2, Number((tabBarOpacity - 0.05).toFixed(2))))} onPlus={() => setTabBarOpacity(Math.min(1, Number((tabBarOpacity + 0.05).toFixed(2))))} colors={colors} />
+      </EditorCard>
+
+      <EditorCard title="Edge Light Styling" colors={colors}>
+        <View style={styles.colorRow}>
+          <Text style={[styles.tokenLabel, {color: colors.text}]}>Color</Text>
+          <TextInput value={edgeColor} onChangeText={setEdgeColor} style={[styles.input, styles.tokenInput, cardInputStyle(colors)]} />
+        </View>
+        <AdjustRow label="Pulse Speed (ms)" value={edgeSpeedMs} onMinus={() => setEdgeSpeedMs(edgeSpeedMs - 200)} onPlus={() => setEdgeSpeedMs(edgeSpeedMs + 200)} colors={colors} />
+        <AdjustRow label="Thickness" value={edgeThickness} onMinus={() => setEdgeThickness(edgeThickness - 1)} onPlus={() => setEdgeThickness(edgeThickness + 1)} colors={colors} />
+        <AdjustRow label="Glow Opacity x100" value={Math.round(edgeGlowOpacity * 100)} onMinus={() => setEdgeGlowOpacity(edgeGlowOpacity - 0.05)} onPlus={() => setEdgeGlowOpacity(edgeGlowOpacity + 0.05)} colors={colors} />
+        <Text style={[styles.help, {color: colors.mutedText}]}>
+          Edge lighting wraps the entire viewport and updates instantly from these controls.
+        </Text>
       </EditorCard>
 
       <EditorCard title="Color Tokens" colors={colors}>

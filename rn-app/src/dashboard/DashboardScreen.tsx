@@ -16,9 +16,8 @@ export function DashboardScreen(): React.JSX.Element {
   const totalListeningMs = useDashboardStore(state => state.totalListeningMs);
   const totalStreams = useDashboardStore(state => state.totalStreams);
   const adsSkipped = useDashboardStore(state => state.adsSkipped);
-  const payoutRate = useDashboardStore(state => state.payoutRatePerStreamUsd);
-
-  const moneyOwed = totalStreams * payoutRate;
+  const baseRate = 0.004;
+  const moneyOwed = totalStreams * baseRate;
 
   return (
     <View style={[styles.root, {backgroundColor: colors.background}]}>

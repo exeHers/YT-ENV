@@ -2,7 +2,6 @@ import React, {useEffect, useMemo, useState} from 'react';
 import {Modal, Pressable, SafeAreaView, StyleSheet, Text, View} from 'react-native';
 import {PluginRegistry} from './src/plugins/Plugin';
 import {AuthPlugin, AuthProvider, AuthSession} from './src/plugins/auth/AuthPlugin';
-import {WebSessionManager} from './src/plugins/auth/WebSessionManager';
 import {PipedClient} from './src/network/pipedClient';
 import {ExtremeSettingsScreen} from './src/settings/ExtremeSettingsScreen';
 import {YouTubeWebAuthScreen} from './src/plugins/auth/YouTubeWebAuthScreen';
@@ -43,8 +42,8 @@ export default function App(): React.JSX.Element {
     const provider = new PlaceholderAuthProvider();
     const authPlugin = new AuthPlugin(provider);
     const equalizerPlugin = new EqualizerPlugin();
-    const sessionManager = new WebSessionManager('https://piped.example.com');
-    const pipedClient = new PipedClient('https://piped.example.com', authPlugin, sessionManager);
+    // Network client is a singleton object; cookie/session plumbing is handled inside it.
+    const pipedClient = PipedClient;
     const plugins = new PluginRegistry();
     plugins.register(authPlugin);
     plugins.register(equalizerPlugin);

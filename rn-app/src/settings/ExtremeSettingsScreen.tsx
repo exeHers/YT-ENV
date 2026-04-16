@@ -3,6 +3,7 @@ import {Linking, Platform, Pressable, SafeAreaView, ScrollView, StyleSheet, Swit
 import {SyncBadge} from '../ui/SyncBadge';
 import {useSettingsStore} from '../state/settingsStore';
 import {useThemeStore} from '../state/themeStore';
+import {useDebugStore} from '../state/debugStore';
 
 type Props = {
   onOpenSync: () => void;
@@ -13,6 +14,9 @@ export function ExtremeSettingsScreen({onOpenSync}: Props): React.JSX.Element {
   const settingsValues = useSettingsStore(state => state.values);
   const setSettingsValue = useSettingsStore(state => state.setValue);
   const clearCache = useSettingsStore(state => state.clearCache);
+  const instances = useDebugStore(state => state.instances);
+  const currentInstance = useDebugStore(state => state.currentInstance);
+  const setInstance = useDebugStore(state => state.setInstance);
   const [eqStatus, setEqStatus] = useState('External EQ idle');
 
   const openExternalEqualizer = async () => {
@@ -43,15 +47,30 @@ export function ExtremeSettingsScreen({onOpenSync}: Props): React.JSX.Element {
           <Text style={styles.syncButtonText}>Sync Account</Text>
         </Pressable>
         <View style={[styles.section, {backgroundColor: colors.surface, borderColor: colors.border}]}>
+          <Text style={[styles.sectionTitle, {color: colors.accent}]}>API Instance</Text>
+          {instances.map(item => (
+            <Pressable key={item} style={[styles.row, {borderColor: colors.border}]} onPress={() => setInstance(item)}>
+              <Text style={[styles.title, {color: colors.text, flex: 1}]} numberOfLines={1}>{item}</Text>
+              <Text style={{color: item === currentInstance ? colors.accent : colors.mutedText}}>
+                {item === currentInstance ? 'ACTIVE' : 'Use'}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+        <View style={[styles.section, {backgroundColor: colors.surface, borderColor: colors.border}]}>
           <Text style={[styles.sectionTitle, {color: colors.accent}]}>Audio Quality</Text>
           <SwitchRow label="Force 256kbps Opus" value={Boolean(settingsValues['engine.forceOpus256'])} onToggle={enabled => setSettingsValue('engine.forceOpus256', enabled)} colors={colors} />
           <SwitchRow label="Dynamic Normalization" value={Boolean(settingsValues['engine.dynamicNormalization'])} onToggle={enabled => setSettingsValue('engine.dynamicNormalization', enabled)} colors={colors} />
           <SwitchRow label="Silence Skipping" value={Boolean(settingsValues['engine.silenceSkipping'])} onToggle={enabled => setSettingsValue('engine.silenceSkipping', enabled)} colors={colors} />
+          <CycleRow label="Audio Pre-fetch Aggressiveness" value={String(settingsValues['engine.prefetchAggressiveness'] || 'medium')} options={['low', 'medium', 'high']} onCycle={value => setSettingsValue('engine.prefetchAggressiveness', value)} colors={colors} />
         </View>
         <View style={[styles.section, {backgroundColor: colors.surface, borderColor: colors.border}]}>
           <Text style={[styles.sectionTitle, {color: colors.accent}]}>Cache + Proxy Controls</Text>
           <SwitchRow label="Proxy Rotation" value={Boolean(settingsValues['mali.proxyRotation'])} onToggle={enabled => setSettingsValue('mali.proxyRotation', enabled)} colors={colors} />
           <SwitchRow label="Data Saver Mode" value={Boolean(settingsValues['mali.dataSaver'])} onToggle={enabled => setSettingsValue('mali.dataSaver', enabled)} colors={colors} />
+          <CycleRow label="Image/Thumbnail Quality" value={String(settingsValues['mali.imageQuality'] || 'high')} options={['low', 'medium', 'high']} onCycle={value => setSettingsValue('mali.imageQuality', value)} colors={colors} />
+          <AdjustRow label="Cache Limit (MB)" value={Number(settingsValues['mali.cacheLimitMb'] || 1024)} onMinus={() => setSettingsValue('mali.cacheLimitMb', Math.max(256, Number(settingsValues['mali.cacheLimitMb'] || 1024) - 128))} onPlus={() => setSettingsValue('mali.cacheLimitMb', Math.min(8192, Number(settingsValues['mali.cacheLimitMb'] || 1024) + 128))} colors={colors} />
+          <CacheProgress colors={colors} used={Number(settingsValues['mali.storageUsedMb'] || 0)} limit={Number(settingsValues['mali.cacheLimitMb'] || 1024)} />
           <Pressable style={styles.utilityButton} onPress={clearCache}>
             <Text style={styles.utilityButtonText}>Clear cache now</Text>
           </Pressable>
@@ -61,6 +80,14 @@ export function ExtremeSettingsScreen({onOpenSync}: Props): React.JSX.Element {
           <SwitchRow label="Pure AMOLED Mode" value={Boolean(settingsValues['canvas.pureAmoled'])} onToggle={enabled => setSettingsValue('canvas.pureAmoled', enabled)} colors={colors} />
           <SwitchRow label="Aggressive Animations" value={Boolean(settingsValues['canvas.motionBoost'])} onToggle={enabled => setSettingsValue('canvas.motionBoost', enabled)} colors={colors} />
           <SwitchRow label="Sticky Mini Player" value={Boolean(settingsValues['ui.stickyMiniPlayer'])} onToggle={enabled => setSettingsValue('ui.stickyMiniPlayer', enabled)} colors={colors} />
+          <SwitchRow label="Ghost Mode (Incognito Listening)" value={Boolean(settingsValues['engine.ghostMode'])} onToggle={enabled => setSettingsValue('engine.ghostMode', enabled)} colors={colors} />
+        </View>
+        <View style={[styles.section, {backgroundColor: colors.surface, borderColor: colors.border}]}>
+          <Text style={[styles.sectionTitle, {color: colors.accent}]}>Edge Light Controller</Text>
+          <HexRow label="Color" value={String(settingsValues['edgeLight.color'] || '#BD00FF')} onChange={value => setSettingsValue('edgeLight.color', value)} colors={colors} />
+          <AdjustRow label="Speed (ms)" value={Number(settingsValues['edgeLight.speed'] || 1800)} onMinus={() => setSettingsValue('edgeLight.speed', Math.max(500, Number(settingsValues['edgeLight.speed'] || 1800) - 100))} onPlus={() => setSettingsValue('edgeLight.speed', Math.min(5000, Number(settingsValues['edgeLight.speed'] || 1800) + 100))} colors={colors} />
+          <AdjustRow label="Thickness" value={Number(settingsValues['edgeLight.thickness'] || 3)} onMinus={() => setSettingsValue('edgeLight.thickness', Math.max(1, Number(settingsValues['edgeLight.thickness'] || 3) - 1))} onPlus={() => setSettingsValue('edgeLight.thickness', Math.min(12, Number(settingsValues['edgeLight.thickness'] || 3) + 1))} colors={colors} />
+          <AdjustRow label="Glow Opacity x100" value={Math.round(Number(settingsValues['edgeLight.glowOpacity'] || 0.45) * 100)} onMinus={() => setSettingsValue('edgeLight.glowOpacity', Math.max(0.1, Number(settingsValues['edgeLight.glowOpacity'] || 0.45) - 0.05))} onPlus={() => setSettingsValue('edgeLight.glowOpacity', Math.min(1, Number(settingsValues['edgeLight.glowOpacity'] || 0.45) + 0.05))} colors={colors} />
         </View>
         <View style={[styles.section, {backgroundColor: colors.surface, borderColor: colors.border}]}>
           <Text style={[styles.sectionTitle, {color: colors.accent}]}>External Equalizer</Text>
@@ -74,6 +101,110 @@ export function ExtremeSettingsScreen({onOpenSync}: Props): React.JSX.Element {
         </View>
       </ScrollView>
     </SafeAreaView>
+  );
+}
+
+function CacheProgress({
+  used,
+  limit,
+  colors,
+}: {
+  used: number;
+  limit: number;
+  colors: {border: string; accent: string; mutedText: string};
+}): React.JSX.Element {
+  const ratio = Math.min(1, used / Math.max(1, limit));
+  return (
+    <View>
+      <Text style={{color: colors.mutedText, fontSize: 12}}>{`${used}MB / ${limit}MB`}</Text>
+      <View style={[styles.progressTrack, {borderColor: colors.border}]}>
+        <View style={[styles.progressFill, {width: `${ratio * 100}%`, backgroundColor: colors.accent}]} />
+      </View>
+    </View>
+  );
+}
+
+function HexRow({
+  label,
+  value,
+  onChange,
+  colors,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  colors: {text: string; border: string; mutedText: string};
+}): React.JSX.Element {
+  return (
+    <Pressable style={[styles.row, {borderColor: colors.border}]} onPress={() => onChange(value === '#BD00FF' ? '#00D1FF' : '#BD00FF')}>
+      <View style={styles.textWrap}>
+        <Text style={[styles.title, {color: colors.text}]}>{label}</Text>
+        <Text style={[styles.description, {color: colors.mutedText}]}>Tap to cycle hex quick-pick.</Text>
+      </View>
+      <Text style={{color: colors.text}}>{value}</Text>
+    </Pressable>
+  );
+}
+
+function CycleRow({
+  label,
+  value,
+  options,
+  onCycle,
+  colors,
+}: {
+  label: string;
+  value: string;
+  options: string[];
+  onCycle: (value: string) => void;
+  colors: {text: string; border: string; accent: string; mutedText: string};
+}): React.JSX.Element {
+  return (
+    <Pressable
+      style={[styles.row, {borderColor: colors.border}]}
+      onPress={() => {
+        const index = options.findIndex(item => item === value);
+        const next = options[(index + 1) % options.length];
+        onCycle(next);
+      }}>
+      <View style={styles.textWrap}>
+        <Text style={[styles.title, {color: colors.text}]}>{label}</Text>
+        <Text style={[styles.description, {color: colors.mutedText}]}>Tap to cycle options.</Text>
+      </View>
+      <Text style={{color: colors.accent}}>{value}</Text>
+    </Pressable>
+  );
+}
+
+function AdjustRow({
+  label,
+  value,
+  onMinus,
+  onPlus,
+  colors,
+}: {
+  label: string;
+  value: number;
+  onMinus: () => void;
+  onPlus: () => void;
+  colors: {text: string; mutedText: string; border: string; accent: string};
+}): React.JSX.Element {
+  return (
+    <View style={[styles.row, {borderColor: colors.border}]}>
+      <View style={styles.textWrap}>
+        <Text style={[styles.title, {color: colors.text}]}>{label}</Text>
+        <Text style={[styles.description, {color: colors.mutedText}]}>Adjust value live.</Text>
+      </View>
+      <View style={styles.adjustRow}>
+        <Pressable style={[styles.adjustBtn, {borderColor: colors.border}]} onPress={onMinus}>
+          <Text style={{color: colors.text}}>-</Text>
+        </Pressable>
+        <Text style={{color: colors.accent, minWidth: 56, textAlign: 'center'}}>{value}</Text>
+        <Pressable style={[styles.adjustBtn, {borderColor: colors.border}]} onPress={onPlus}>
+          <Text style={{color: colors.text}}>+</Text>
+        </Pressable>
+      </View>
+    </View>
   );
 }
 
@@ -123,4 +254,8 @@ const styles = StyleSheet.create({
   description: {marginTop: 4, fontSize: 12},
   utilityButton: {backgroundColor: '#262626', borderRadius: 10, paddingVertical: 10, alignItems: 'center'},
   utilityButtonText: {color: '#E7E7E7', fontWeight: '700'},
+  progressTrack: {marginTop: 6, height: 9, borderWidth: 1, borderRadius: 999, overflow: 'hidden'},
+  progressFill: {height: '100%'},
+  adjustRow: {flexDirection: 'row', alignItems: 'center', gap: 8},
+  adjustBtn: {width: 28, height: 28, borderWidth: 1, borderRadius: 8, alignItems: 'center', justifyContent: 'center'},
 });

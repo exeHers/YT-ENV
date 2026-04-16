@@ -12,9 +12,11 @@ import {LibraryScreen} from './src/library/LibraryScreen';
 import {HomeScreen} from './src/home/HomeScreen';
 import {DashboardScreen} from './src/dashboard/DashboardScreen';
 import {CreationScreen} from './src/creation/CreationScreen';
-import {EdgeVisualizer} from './src/ui/EdgeVisualizer';
+import {EdgeLightWrapper} from './src/ui/EdgeLightWrapper';
 import {useSettingsStore} from './src/state/settingsStore';
 import {TabId, useThemeStore} from './src/state/themeStore';
+import {DebugScreen} from './src/debug/DebugScreen';
+import {ScreenErrorBoundary} from './src/ui/ScreenErrorBoundary';
 
 class PlaceholderAuthProvider implements AuthProvider {
   async startSignIn(): Promise<AuthSession> {
@@ -41,6 +43,7 @@ export default function App(): React.JSX.Element {
   const appName = useThemeStore(state => state.appName);
   const textScale = useThemeStore(state => state.textScale);
   const radius = useThemeStore(state => state.radius);
+  const tabBarOpacity = useThemeStore(state => state.tabBarOpacity);
   const refreshRate = Number(useSettingsStore(state => state.values['canvas.refreshRate']) || 120);
 
   const services = useMemo(() => {
@@ -93,17 +96,42 @@ export default function App(): React.JSX.Element {
   return (
     <SafeAreaView style={[styles.root, {backgroundColor: colors.background}]}>
       <ProfileSyncCard onPressSync={() => setShowAuth(true)} />
-      <View style={styles.tabRow}>
+      <View style={[styles.tabRow, {opacity: tabBarOpacity}]}>
         {tabLayout.map(tab => (
           <Tab key={tab} id={tab} activeTab={activeTab} onPress={setActiveTab} />
         ))}
       </View>
       <View style={styles.body}>
-        {activeTab === 'home' ? <HomeScreen /> : null}
-        {activeTab === 'library' ? <LibraryScreen onOpenSync={() => setShowAuth(true)} /> : null}
-        {activeTab === 'dashboard' ? <DashboardScreen /> : null}
-        {activeTab === 'creation' ? <CreationScreen /> : null}
-        {activeTab === 'settings' ? <ExtremeSettingsScreen onOpenSync={() => setShowAuth(true)} /> : null}
+        {activeTab === 'home' ? (
+          <ScreenErrorBoundary name="Home">
+            <HomeScreen />
+          </ScreenErrorBoundary>
+        ) : null}
+        {activeTab === 'library' ? (
+          <ScreenErrorBoundary name="Library">
+            <LibraryScreen onOpenSync={() => setShowAuth(true)} />
+          </ScreenErrorBoundary>
+        ) : null}
+        {activeTab === 'dashboard' ? (
+          <ScreenErrorBoundary name="Dashboard">
+            <DashboardScreen />
+          </ScreenErrorBoundary>
+        ) : null}
+        {activeTab === 'creation' ? (
+          <ScreenErrorBoundary name="Creation">
+            <CreationScreen />
+          </ScreenErrorBoundary>
+        ) : null}
+        {activeTab === 'settings' ? (
+          <ScreenErrorBoundary name="Settings">
+            <ExtremeSettingsScreen onOpenSync={() => setShowAuth(true)} />
+          </ScreenErrorBoundary>
+        ) : null}
+        {activeTab === 'debug' ? (
+          <ScreenErrorBoundary name="Debug">
+            <DebugScreen />
+          </ScreenErrorBoundary>
+        ) : null}
       </View>
       <Modal visible={showAuth} animationType="slide">
         <YouTubeWebAuthScreen
@@ -119,7 +147,7 @@ export default function App(): React.JSX.Element {
         />
       </Modal>
       <SyncSuccessOverlay visible={showSyncSuccess} />
-      <EdgeVisualizer active />
+      <EdgeLightWrapper active />
       <View style={styles.appBadge}>
         <Text style={[styles.appBadgeText, {fontSize: 11 * textScale}]}>{appName}</Text>
       </View>
@@ -150,7 +178,7 @@ function Tab({
 const styles = StyleSheet.create({
   root: {flex: 1},
   body: {flex: 1},
-  tabRow: {flexDirection: 'row', gap: 8, paddingHorizontal: 8, paddingBottom: 8},
+  tabRow: {flexDirection: 'row', gap: 6, paddingHorizontal: 8, paddingBottom: 8},
   tab: {flex: 1, backgroundColor: 'rgba(255,255,255,0.08)', paddingVertical: 9, alignItems: 'center'},
   tabActive: {backgroundColor: 'rgba(189,0,255,0.34)'},
   tabText: {color: '#AFAFAF', fontWeight: '700', fontSize: 12},

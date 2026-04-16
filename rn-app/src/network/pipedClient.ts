@@ -1,8 +1,6 @@
 // rn-app/src/network/pipedClient.ts
 import { withAuthHeaders } from './authMiddleware';
-
-// You can change this instance in the app settings later
-const BASE_URL = 'https://pipedapi.kavin.rocks'; 
+import {debugLog, useDebugStore} from '../state/debugStore';
 
 export const PipedClient = {
   /**
@@ -10,24 +8,35 @@ export const PipedClient = {
    * Injects our custom YT ENV cookies into every call
    */
   async request(endpoint: string, options: RequestInit = {}) {
-    const url = `${BASE_URL}${endpoint}`;
-    
-    // The Magic: This adds your YouTube cookies to the request
-    const headers = await withAuthHeaders({
-      'Content-Type': 'application/json',
-      ...options.headers,
-    });
+    const {instances, currentInstance} = useDebugStore.getState();
+    const orderedInstances = [currentInstance, ...instances.filter(item => item !== currentInstance)];
+    const headers = await withAuthHeaders({'Content-Type': 'application/json', ...options.headers});
+    let lastError = 'Unknown request failure';
 
-    const response = await fetch(url, {
-      ...options,
-      headers,
-    });
-
-    if (!response.ok) {
-      throw new Error(`Mali Error: ${response.status} at ${endpoint}`);
+    for (const base of orderedInstances) {
+      const url = `${base}${endpoint}`;
+      try {
+        debugLog('info', `REQ ${url}`);
+        const response = await fetch(url, {...options, headers});
+        if (!response.ok) {
+          lastError = `Mali Error: ${response.status} at ${endpoint}`;
+          debugLog('error', `${lastError} via ${base}`);
+          if (response.status === 404 || response.status >= 500) {
+            continue;
+          }
+          throw new Error(lastError);
+        }
+        if (base !== currentInstance) {
+          useDebugStore.getState().setInstance(base);
+          debugLog('info', `Switched active instance -> ${base}`);
+        }
+        return response.json();
+      } catch (error) {
+        lastError = error instanceof Error ? error.message : 'Request failed';
+        debugLog('error', `${lastError} via ${base}`);
+      }
     }
-
-    return response.json();
+    throw new Error(lastError);
   },
 
   // --- PUBLIC SEARCH & TRENDING ---

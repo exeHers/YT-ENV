@@ -1,4 +1,4 @@
-import React, {useMemo, useRef} from 'react';
+import React, {useRef} from 'react';
 import {ActivityIndicator, Pressable, Platform, SafeAreaView, StyleSheet, Text, View} from 'react-native';
 import WebView from 'react-native-webview';
 import {WebSessionManager} from './WebSessionManager';
@@ -12,15 +12,16 @@ export function YouTubeWebAuthScreen({
   onManualSuccess,
   onClose,
 }: Props): React.JSX.Element {
-  // Use a Desktop UA to force Google to set all session cookies
-  const desktopUA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+  
+  // The spoofed User-Agent: Matches an A73 Chrome browser perfectly but hides the "wv" (WebView) flag.
+  const spoofedUserAgent = 'Mozilla/5.0 (Linux; Android 14; SM-A736B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36';
 
   const handleNavStateChange = async (navState: any) => {
-    // If we land on the music home page and we aren't in a login flow, we are in.
+    // Detects when the login flow finishes and lands on the music domain
     if (navState.url.includes('music.youtube.com') && !navState.url.includes('ServiceLogin')) {
       const cookies = await WebSessionManager.getPersistedCookies();
       if (cookies.includes('SID')) {
-        onManualSuccess(); // Triggers the neon success animation
+        onManualSuccess(); 
       }
     }
   };
@@ -34,11 +35,14 @@ export function YouTubeWebAuthScreen({
         </Pressable>
       </View>
       <WebView
-        source={{uri: 'https://music.youtube.com/library'}}
-        userAgent={desktopUA}
+        // Pointing directly to the Google Service Login URL forces the correct mobile layout
+        source={{uri: 'https://accounts.google.com/ServiceLogin?service=youtube&passive=true&continue=https://music.youtube.com/'}}
+        userAgent={spoofedUserAgent}
         onNavigationStateChange={handleNavStateChange}
         sharedCookiesEnabled={true}
         thirdPartyCookiesEnabled={true}
+        javaScriptEnabled={true} // CRITICAL FIX: Google login will fail without this
+        domStorageEnabled={true} // CRITICAL FIX: Google needs this to store temporary session states
         startInLoadingState
         renderLoading={() => (
           <View style={styles.loaderContainer}>

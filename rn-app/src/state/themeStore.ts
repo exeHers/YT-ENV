@@ -1,6 +1,6 @@
 import {create} from 'zustand';
 
-export type TabId = 'home' | 'library' | 'dashboard' | 'creation' | 'settings';
+export type TabId = 'home' | 'library' | 'dashboard' | 'creation' | 'settings' | 'debug';
 
 type ThemeState = {
   appName: string;
@@ -8,6 +8,8 @@ type ThemeState = {
   textScale: number;
   radius: number;
   spacing: number;
+  glassBlur: number;
+  tabBarOpacity: number;
   colors: {
     background: string;
     surface: string;
@@ -24,9 +26,11 @@ type ThemeState = {
   setSpacing: (spacing: number) => void;
   setColor: (key: keyof ThemeState['colors'], value: string) => void;
   setTabLayout: (layout: TabId[]) => void;
+  setGlassBlur: (value: number) => void;
+  setTabBarOpacity: (value: number) => void;
 };
 
-const defaultLayout: TabId[] = ['home', 'library', 'dashboard', 'creation', 'settings'];
+const defaultLayout: TabId[] = ['home', 'library', 'dashboard', 'creation', 'settings', 'debug'];
 
 export const useThemeStore = create<ThemeState>(set => ({
   appName: 'YT ENV',
@@ -34,6 +38,8 @@ export const useThemeStore = create<ThemeState>(set => ({
   textScale: 1,
   radius: 12,
   spacing: 12,
+  glassBlur: 14,
+  tabBarOpacity: 0.9,
   colors: {
     background: '#060606',
     surface: '#141414',
@@ -59,4 +65,6 @@ export const useThemeStore = create<ThemeState>(set => ({
     set({
       tabLayout: tabLayout.length === defaultLayout.length ? tabLayout : defaultLayout,
     }),
+  setGlassBlur: glassBlur => set({glassBlur}),
+  setTabBarOpacity: tabBarOpacity => set({tabBarOpacity}),
 }));

@@ -2,7 +2,7 @@ import React from 'react';
 import {Pressable, ScrollView, StyleSheet, Text, TextInput, View} from 'react-native';
 import {TabId, useThemeStore} from '../state/themeStore';
 
-const tabs: TabId[] = ['home', 'library', 'dashboard', 'creation', 'settings'];
+const tabs: TabId[] = ['home', 'library', 'dashboard', 'creation', 'settings', 'debug'];
 
 export function CreationScreen(): React.JSX.Element {
   const appName = useThemeStore(state => state.appName);
@@ -12,6 +12,8 @@ export function CreationScreen(): React.JSX.Element {
   const spacing = useThemeStore(state => state.spacing);
   const colors = useThemeStore(state => state.colors);
   const tabLayout = useThemeStore(state => state.tabLayout);
+  const glassBlur = useThemeStore(state => state.glassBlur);
+  const tabBarOpacity = useThemeStore(state => state.tabBarOpacity);
   const setAppName = useThemeStore(state => state.setAppName);
   const setFontFamily = useThemeStore(state => state.setFontFamily);
   const setTextScale = useThemeStore(state => state.setTextScale);
@@ -19,6 +21,8 @@ export function CreationScreen(): React.JSX.Element {
   const setSpacing = useThemeStore(state => state.setSpacing);
   const setColor = useThemeStore(state => state.setColor);
   const setTabLayout = useThemeStore(state => state.setTabLayout);
+  const setGlassBlur = useThemeStore(state => state.setGlassBlur);
+  const setTabBarOpacity = useThemeStore(state => state.setTabBarOpacity);
 
   const rotateTab = (index: number) => {
     const next = [...tabLayout];
@@ -51,6 +55,8 @@ export function CreationScreen(): React.JSX.Element {
       <EditorCard title="Layout Controls" colors={colors}>
         <AdjustRow label="Global Radius" value={radius} onMinus={() => setRadius(Math.max(0, radius - 1))} onPlus={() => setRadius(Math.min(28, radius + 1))} colors={colors} />
         <AdjustRow label="Global Spacing" value={spacing} onMinus={() => setSpacing(Math.max(4, spacing - 1))} onPlus={() => setSpacing(Math.min(32, spacing + 1))} colors={colors} />
+        <AdjustRow label="Glass Blur Intensity" value={glassBlur} onMinus={() => setGlassBlur(Math.max(0, glassBlur - 1))} onPlus={() => setGlassBlur(Math.min(40, glassBlur + 1))} colors={colors} />
+        <AdjustRow label="Tab Transparency" value={Number(tabBarOpacity.toFixed(2))} onMinus={() => setTabBarOpacity(Math.max(0.2, Number((tabBarOpacity - 0.05).toFixed(2))))} onPlus={() => setTabBarOpacity(Math.min(1, Number((tabBarOpacity + 0.05).toFixed(2))))} colors={colors} />
       </EditorCard>
 
       <EditorCard title="Color Tokens" colors={colors}>

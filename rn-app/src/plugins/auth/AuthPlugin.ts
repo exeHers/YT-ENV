@@ -1,5 +1,5 @@
 import {Plugin} from '../Plugin';
-import {MMKV} from 'react-native-mmkv';
+import {Platform} from 'react-native';
 import {useSessionStore} from '../../state/sessionStore';
 
 export type AuthSession = {
@@ -26,16 +26,54 @@ export class AuthPlugin implements Plugin {
   id = 'auth';
   displayName = 'Account Auth';
 
-  private storage = new MMKV({
-    id: 'ytenv-auth',
-    encryptionKey: 'replace-with-device-derived-key',
-  });
+  // react-native-mmkv is native-only; Expo Web will crash if we import it eagerly.
+  private storage: {
+    getString: (key: string) => string;
+    getNumber: (key: string) => number;
+    set: (key: string, value: string | number) => void;
+    delete: (key: string) => void;
+  };
 
   constructor(private provider: AuthProvider) {}
 
+  private getStorage(): typeof this.storage {
+    if (this.storage) return this.storage;
+
+    if (Platform.OS === 'web') {
+      const mem = new Map<string, string | number>();
+      this.storage = {
+        getString: (key: string) => {
+          const v = mem.get(key);
+          return typeof v === 'string' ? v : '';
+        },
+        getNumber: (key: string) => {
+          const v = mem.get(key);
+          return typeof v === 'number' ? v : 0;
+        },
+        set: (key: string, value: string | number) => {
+          mem.set(key, value);
+        },
+        delete: (key: string) => {
+          mem.delete(key);
+        },
+      };
+      return this.storage;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const mod = require('react-native-mmkv');
+    const MMKV = (mod?.MMKV ?? mod?.default ?? mod) as any;
+    this.storage = new MMKV({
+      id: 'ytenv-auth',
+      encryptionKey: 'replace-with-device-derived-key',
+    });
+    return this.storage;
+  }
+
   async initialize(): Promise<void> {
-    const token = this.storage.getString('access_token');
-    const expires = this.storage.getNumber('expires_at') ?? 0;
+    const s = this.getStorage();
+    const token = s.getString('access_token');
+    const expires = s.getNumber('expires_at') ?? 0;
     const now = Math.floor(Date.now() / 1000);
     const isActive = Boolean(token) && expires > now;
     useSessionStore.getState().setSynced(isActive);
@@ -52,36 +90,39 @@ export class AuthPlugin implements Plugin {
   }
 
   manualSync(sessionData: ManualSessionData): void {
+    const s = this.getStorage();
     if (sessionData.accessToken) {
-      this.storage.set('access_token', sessionData.accessToken);
+      s.set('access_token', sessionData.accessToken);
     }
     if (sessionData.refreshToken) {
-      this.storage.set('refresh_token', sessionData.refreshToken);
+      s.set('refresh_token', sessionData.refreshToken);
     }
     if (sessionData.expiresAtEpochSec) {
-      this.storage.set('expires_at', sessionData.expiresAtEpochSec);
+      s.set('expires_at', sessionData.expiresAtEpochSec);
     } else {
-      this.storage.set('expires_at', Math.floor(Date.now() / 1000) + 3600);
+      s.set('expires_at', Math.floor(Date.now() / 1000) + 3600);
     }
     if (sessionData.metadata) {
-      this.storage.set('manual_sync_metadata', JSON.stringify(sessionData.metadata));
+      s.set('manual_sync_metadata', JSON.stringify(sessionData.metadata));
     }
     useSessionStore.getState().setSynced(true);
   }
 
   async signOut(): Promise<void> {
     await this.provider.signOut();
-    this.storage.delete('access_token');
-    this.storage.delete('refresh_token');
-    this.storage.delete('expires_at');
-    this.storage.delete('token_type');
+    const s = this.getStorage();
+    s.delete('access_token');
+    s.delete('refresh_token');
+    s.delete('expires_at');
+    s.delete('token_type');
     useSessionStore.getState().setSynced(false);
   }
 
   async ensureValidAccessToken(): Promise<string | null> {
-    const accessToken = this.storage.getString('access_token');
-    const expiresAt = this.storage.getNumber('expires_at') ?? 0;
-    const refreshToken = this.storage.getString('refresh_token');
+    const s = this.getStorage();
+    const accessToken = s.getString('access_token');
+    const expiresAt = s.getNumber('expires_at') ?? 0;
+    const refreshToken = s.getString('refresh_token');
     const now = Math.floor(Date.now() / 1000);
 
     if (accessToken && expiresAt > now + 30) {
@@ -99,15 +140,17 @@ export class AuthPlugin implements Plugin {
   }
 
   getAuthHeader(): string | null {
-    const token = this.storage.getString('access_token');
+    const s = this.getStorage();
+    const token = s.getString('access_token');
     if (!token) return null;
     return `Bearer ${token}`;
   }
 
   private saveSession(session: AuthSession): void {
-    this.storage.set('access_token', session.accessToken);
-    this.storage.set('refresh_token', session.refreshToken ?? '');
-    this.storage.set('expires_at', session.expiresAtEpochSec);
-    this.storage.set('token_type', session.tokenType);
+    const s = this.getStorage();
+    s.set('access_token', session.accessToken);
+    s.set('refresh_token', session.refreshToken ?? '');
+    s.set('expires_at', session.expiresAtEpochSec);
+    s.set('token_type', session.tokenType);
   }
 }

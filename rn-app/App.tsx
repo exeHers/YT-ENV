@@ -6,14 +6,15 @@ import {PipedClient} from './src/network/pipedClient';
 import {ExtremeSettingsScreen} from './src/settings/ExtremeSettingsScreen';
 import {YouTubeWebAuthScreen} from './src/plugins/auth/YouTubeWebAuthScreen';
 import {SyncSuccessOverlay} from './src/ui/SyncSuccessOverlay';
-import {EqualizerPlugin} from './src/plugins/eq/EqualizerPlugin';
 import {DNVNSplashScreen} from './src/ui/DNVNSplashScreen';
 import {ProfileSyncCard} from './src/ui/ProfileSyncCard';
 import {LibraryScreen} from './src/library/LibraryScreen';
-import {UnifiedSearchScreen} from './src/search/UnifiedSearchScreen';
-import {identifyExternalAudio} from './src/search/IdentifyService';
+import {HomeScreen} from './src/home/HomeScreen';
+import {DashboardScreen} from './src/dashboard/DashboardScreen';
+import {CreationScreen} from './src/creation/CreationScreen';
 import {EdgeVisualizer} from './src/ui/EdgeVisualizer';
 import {useSettingsStore} from './src/state/settingsStore';
+import {TabId, useThemeStore} from './src/state/themeStore';
 
 class PlaceholderAuthProvider implements AuthProvider {
   async startSignIn(): Promise<AuthSession> {
@@ -34,21 +35,22 @@ export default function App(): React.JSX.Element {
   const [bootError, setBootError] = useState<string | null>(null);
   const [showAuth, setShowAuth] = useState(false);
   const [showSyncSuccess, setShowSyncSuccess] = useState(false);
-  const [activeTab, setActiveTab] = useState<'search' | 'library' | 'settings'>('settings');
-  const [identifyBanner, setIdentifyBanner] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<TabId>('home');
+  const tabLayout = useThemeStore(state => state.tabLayout);
+  const colors = useThemeStore(state => state.colors);
+  const appName = useThemeStore(state => state.appName);
+  const textScale = useThemeStore(state => state.textScale);
+  const radius = useThemeStore(state => state.radius);
   const refreshRate = Number(useSettingsStore(state => state.values['canvas.refreshRate']) || 120);
 
   const services = useMemo(() => {
     const provider = new PlaceholderAuthProvider();
     const authPlugin = new AuthPlugin(provider);
-    const equalizerPlugin = new EqualizerPlugin();
     // Network client is a singleton object; cookie/session plumbing is handled inside it.
     const pipedClient = PipedClient;
     const plugins = new PluginRegistry();
     plugins.register(authPlugin);
-    plugins.register(equalizerPlugin);
-
-    return {plugins, pipedClient, authPlugin, equalizerPlugin};
+    return {plugins, pipedClient, authPlugin};
   }, []);
 
   useEffect(() => {
@@ -87,31 +89,21 @@ export default function App(): React.JSX.Element {
   }
 
   void services.pipedClient;
-  const onIdentify = async () => {
-    const result = await identifyExternalAudio();
-    setIdentifyBanner(`Identified: ${result.track} • ${result.artist} (${Math.round(result.confidence * 100)}%)`);
-    setTimeout(() => setIdentifyBanner(null), 2200);
-  };
 
   return (
-    <SafeAreaView style={styles.root}>
+    <SafeAreaView style={[styles.root, {backgroundColor: colors.background}]}>
       <ProfileSyncCard onPressSync={() => setShowAuth(true)} />
-      {identifyBanner ? (
-        <View style={styles.banner}>
-          <Text style={styles.bannerText}>{identifyBanner}</Text>
-        </View>
-      ) : null}
       <View style={styles.tabRow}>
-        <Tab id="search" activeTab={activeTab} onPress={setActiveTab} />
-        <Tab id="library" activeTab={activeTab} onPress={setActiveTab} />
-        <Tab id="settings" activeTab={activeTab} onPress={setActiveTab} />
+        {tabLayout.map(tab => (
+          <Tab key={tab} id={tab} activeTab={activeTab} onPress={setActiveTab} />
+        ))}
       </View>
       <View style={styles.body}>
-        {activeTab === 'search' ? <UnifiedSearchScreen onIdentifyPress={onIdentify} /> : null}
-        {activeTab === 'library' ? <LibraryScreen /> : null}
-        {activeTab === 'settings' ? (
-          <ExtremeSettingsScreen equalizerPlugin={services.equalizerPlugin} onOpenSync={() => setShowAuth(true)} />
-        ) : null}
+        {activeTab === 'home' ? <HomeScreen /> : null}
+        {activeTab === 'library' ? <LibraryScreen onOpenSync={() => setShowAuth(true)} /> : null}
+        {activeTab === 'dashboard' ? <DashboardScreen /> : null}
+        {activeTab === 'creation' ? <CreationScreen /> : null}
+        {activeTab === 'settings' ? <ExtremeSettingsScreen onOpenSync={() => setShowAuth(true)} /> : null}
       </View>
       <Modal visible={showAuth} animationType="slide">
         <YouTubeWebAuthScreen
@@ -128,6 +120,9 @@ export default function App(): React.JSX.Element {
       </Modal>
       <SyncSuccessOverlay visible={showSyncSuccess} />
       <EdgeVisualizer active />
+      <View style={styles.appBadge}>
+        <Text style={[styles.appBadgeText, {fontSize: 11 * textScale}]}>{appName}</Text>
+      </View>
       <View style={styles.hzBadge}>
         <Text style={styles.hzText}>{`${refreshRate}Hz`}</Text>
       </View>
@@ -140,23 +135,23 @@ function Tab({
   activeTab,
   onPress,
 }: {
-  id: 'search' | 'library' | 'settings';
-  activeTab: 'search' | 'library' | 'settings';
-  onPress: (id: 'search' | 'library' | 'settings') => void;
+  id: TabId;
+  activeTab: TabId;
+  onPress: (id: TabId) => void;
 }): React.JSX.Element {
   const active = activeTab === id;
   return (
-    <Pressable style={[styles.tab, active && styles.tabActive]} onPress={() => onPress(id)}>
+    <Pressable style={[styles.tab, active && styles.tabActive, {borderRadius: useThemeStore.getState().radius}]} onPress={() => onPress(id)}>
       <Text style={[styles.tabText, active && styles.tabTextActive]}>{id.toUpperCase()}</Text>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  root: {flex: 1, backgroundColor: '#000000'},
+  root: {flex: 1},
   body: {flex: 1},
-  tabRow: {flexDirection: 'row', gap: 8, paddingHorizontal: 12, paddingBottom: 8},
-  tab: {flex: 1, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.08)', paddingVertical: 9, alignItems: 'center'},
+  tabRow: {flexDirection: 'row', gap: 8, paddingHorizontal: 8, paddingBottom: 8},
+  tab: {flex: 1, backgroundColor: 'rgba(255,255,255,0.08)', paddingVertical: 9, alignItems: 'center'},
   tabActive: {backgroundColor: 'rgba(189,0,255,0.34)'},
   tabText: {color: '#AFAFAF', fontWeight: '700', fontSize: 12},
   tabTextActive: {color: '#FFFFFF'},
@@ -164,8 +159,8 @@ const styles = StyleSheet.create({
   loadingText: {marginTop: 12, color: '#BBBBBB', fontSize: 13},
   errorTitle: {color: '#FF4D67', fontWeight: '700', fontSize: 18},
   errorBody: {marginTop: 8, color: '#CCCCCC', textAlign: 'center'},
-  banner: {marginHorizontal: 12, marginBottom: 8, backgroundColor: 'rgba(34,197,94,0.2)', borderWidth: 1, borderColor: '#22C55E', borderRadius: 10, padding: 8},
-  bannerText: {color: '#D8FEE4', fontWeight: '700', fontSize: 12},
+  appBadge: {position: 'absolute', left: 10, bottom: 10, backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4},
+  appBadgeText: {color: '#FFFFFF', fontWeight: '700'},
   hzBadge: {position: 'absolute', right: 10, bottom: 10, backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4},
   hzText: {color: '#BD00FF', fontSize: 11, fontWeight: '800'},
 });

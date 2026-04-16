@@ -2,6 +2,21 @@
 import { withAuthHeaders } from './authMiddleware';
 import {debugLog, useDebugStore} from '../state/debugStore';
 
+const parseJsonBody = async (
+  response: Response,
+  endpoint: string,
+  base: string,
+): Promise<unknown> => {
+  const raw = await response.text();
+  if (!raw.trim()) return null;
+  try {
+    return JSON.parse(raw);
+  } catch {
+    const preview = raw.slice(0, 100).replace(/\s+/g, ' ');
+    throw new Error(`Invalid JSON from ${base}${endpoint}. Body starts with: "${preview}"`);
+  }
+};
+
 export const PipedClient = {
   /**
    * Generic Request Wrapper
@@ -10,7 +25,11 @@ export const PipedClient = {
   async request(endpoint: string, options: RequestInit = {}) {
     const {instances, currentInstance} = useDebugStore.getState();
     const orderedInstances = [currentInstance, ...instances.filter(item => item !== currentInstance)];
-    const headers = await withAuthHeaders({'Content-Type': 'application/json', ...options.headers});
+    const headers = await withAuthHeaders({
+      'Content-Type': 'application/json',
+      Accept: 'application/json, text/plain;q=0.9, */*;q=0.8',
+      ...options.headers,
+    });
     let lastError = 'Unknown request failure';
 
     for (const base of orderedInstances) {
@@ -30,7 +49,7 @@ export const PipedClient = {
           useDebugStore.getState().setInstance(base);
           debugLog('info', `Switched active instance -> ${base}`);
         }
-        return response.json();
+        return await parseJsonBody(response, endpoint, base);
       } catch (error) {
         lastError = error instanceof Error ? error.message : 'Request failed';
         debugLog('error', `${lastError} via ${base}`);

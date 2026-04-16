@@ -20,13 +20,13 @@ export function EdgeLightWrapper({active}: {active: boolean}): React.JSX.Element
       -1,
       true,
     );
-  }, [active, glowOpacity, pulse, speed]);
+  }, [active, edgeGlowOpacity, pulse, edgeSpeedMs]);
 
   const animated = useAnimatedStyle(() => ({opacity: pulse.value}));
 
   return (
     <View pointerEvents="none" style={styles.container}>
-      <Animated.View style={[styles.edge, styles.top, animated, {height: thickness, backgroundColor: color}]} />
+      <Animated.View style={[styles.edge, styles.top, animated, {height: edgeThickness, backgroundColor: edgeColor}]} />
       <Animated.View style={[styles.edge, styles.bottom, animated, {height: edgeThickness, backgroundColor: edgeColor}]} />
       <Animated.View style={[styles.edgeVertical, styles.left, animated, {width: edgeThickness, backgroundColor: edgeColor}]} />
       <Animated.View style={[styles.edgeVertical, styles.right, animated, {width: edgeThickness, backgroundColor: edgeColor}]} />

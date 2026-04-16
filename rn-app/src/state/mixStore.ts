@@ -20,6 +20,15 @@ type MixState = {
 
 const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000;
 
+const asList = (payload: unknown): Array<Record<string, unknown>> => {
+  if (Array.isArray(payload)) return payload as Array<Record<string, unknown>>;
+  if (payload && typeof payload === 'object') {
+    const maybeItems = (payload as {items?: unknown}).items;
+    if (Array.isArray(maybeItems)) return maybeItems as Array<Record<string, unknown>>;
+  }
+  return [];
+};
+
 const toTrack = (item: Record<string, unknown>, idx: number): MixTrack => ({
   id: String(item.url || item.title || idx),
   title: String(item.title || 'Unknown Track'),
@@ -40,7 +49,7 @@ export const useMixStore = create<MixState>((set, get) => ({
       return;
     }
     const query = history[0]?.title ? `${history[0].title} dark trap remix` : 'dark trap industrial mix';
-    const result = (await PipedClient.search(query, 'music_songs')) as Array<Record<string, unknown>>;
+    const result = asList(await PipedClient.search(query, 'music_songs'));
     const shuffled = [...result].sort(() => Math.random() - 0.5).slice(0, 30).map(toTrack);
     set({weeklyMix: shuffled, lastGenerated: now});
   },

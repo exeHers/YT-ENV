@@ -10,6 +10,15 @@ import {MixTrack, useMixStore} from '../state/mixStore';
 
 type Section = {id: string; title: string; tracks: MixTrack[]};
 
+const asList = (payload: unknown): Array<Record<string, unknown>> => {
+  if (Array.isArray(payload)) return payload as Array<Record<string, unknown>>;
+  if (payload && typeof payload === 'object') {
+    const maybeItems = (payload as {items?: unknown}).items;
+    if (Array.isArray(maybeItems)) return maybeItems as Array<Record<string, unknown>>;
+  }
+  return [];
+};
+
 export function HomeScreen(): React.JSX.Element {
   const isSynced = useSessionStore(state => state.isSynced);
   const recordStream = useDashboardStore(state => state.recordStream);
@@ -53,7 +62,7 @@ export function HomeScreen(): React.JSX.Element {
           url: item.url ? String(item.url) : undefined,
         });
 
-        const trending = (trendingRaw as Array<Record<string, unknown>>).slice(0, 24).map(toTrack);
+        const trending = asList(trendingRaw).slice(0, 24).map(toTrack);
         const darkVibes = darkRaw.slice(0, 20).map(toTrack);
         const moods = moodRaw.slice(0, 20).map(toTrack);
         const recentSpino = [...weeklyMix].slice(0, 20);
@@ -84,7 +93,7 @@ export function HomeScreen(): React.JSX.Element {
     setLoading(true);
     setError(null);
     try {
-      const result = (await PipedClient.search(query.trim(), 'music_songs')) as Array<Record<string, unknown>>;
+      const result = asList(await PipedClient.search(query.trim(), 'music_songs'));
       const mapped = result.slice(0, 25).map((item, idx) => ({
         id: String(item.url || item.title || idx),
         title: String(item.title || 'Unknown'),

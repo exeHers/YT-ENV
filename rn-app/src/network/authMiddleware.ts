@@ -1,36 +1,26 @@
-import {AuthPlugin} from '../plugins/auth/AuthPlugin';
-import {WebSessionManager} from '../plugins/auth/WebSessionManager';
-
-type RequestOptions = {
-  headers?: Record<string, string>;
-};
+// rn-app/src/network/authMiddleware.ts
+import { WebSessionManager } from '../plugins/auth/WebSessionManager';
 
 /**
- * Auth middleware for API calls.
- * Injects bearer auth from the legitimate user session.
+ * withAuthHeaders
+ * This is the heart of YT ENV. It injects the raw session cookies 
+ * captured from music.youtube.com into every outgoing request.
  */
-export async function withAuthHeaders(
-  authPlugin: AuthPlugin,
-  sessionManager: WebSessionManager,
-  options: RequestOptions = {},
-): Promise<RequestOptions> {
-  const token = await authPlugin.ensureValidAccessToken();
-  const cookieHeader = await sessionManager.getValidCookies();
-
-  const headers: Record<string, string> = {
-    ...(options.headers ?? {}),
-  };
-  if (token) {
-    headers.Authorization = `Bearer ${token}`;
+export const withAuthHeaders = async (baseHeaders: any = {}) => {
+  try {
+    // Get the raw cookies sniffed during the WebView login
+    const sessionCookies = await WebSessionManager.getPersistedCookies();
+    
+    return {
+      ...baseHeaders,
+      'Cookie': sessionCookies, // The magic sync string
+      'User-Agent': 'Mozilla/5.0 (Linux; Android 13; SM-A736B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36',
+      'X-Origin': 'https://music.youtube.com',
+      'Referer': 'https://music.youtube.com/',
+      'Accept': '*/*',
+    };
+  } catch (error) {
+    console.error('Mali Error: Could not inject auth headers', error);
+    return baseHeaders;
   }
-  if (cookieHeader) {
-    headers.Cookie = cookieHeader;
-  }
-
-  return Object.keys(headers).length > 0
-    ? {
-    ...options,
-    headers,
-      }
-    : options;
-}
+};

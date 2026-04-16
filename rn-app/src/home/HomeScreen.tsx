@@ -36,54 +36,55 @@ export function HomeScreen(): React.JSX.Element {
   const [status, setStatus] = useState<string>('Loading premium feed...');
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const loadFeed = async () => {
-      setLoading(true);
-      setError(null);
+  const loadFeed = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      // Always try trending first so guest mode has content even if mix/search fail.
+      const trendingRaw = await PipedClient.getTrending('US');
+      let darkRaw: Array<Record<string, unknown>> = [];
+      let moodRaw: Array<Record<string, unknown>> = [];
       try {
-        // Always try trending first so guest mode has content even if mix/search fail.
-        const trendingRaw = await PipedClient.getTrending('US');
-        let darkRaw: Array<Record<string, unknown>> = [];
-        let moodRaw: Array<Record<string, unknown>> = [];
-        try {
-          await refreshMixIfNeeded();
-          darkRaw = (await PipedClient.search('dark industrial phonk', 'music_songs')) as Array<Record<string, unknown>>;
-          moodRaw = (await PipedClient.search('dark trap mood', 'music_songs')) as Array<Record<string, unknown>>;
-        } catch {
-          // Non-fatal: keep trending + any existing mix.
-        }
-
-        const toTrack = (item: Record<string, unknown>, idx: number): MixTrack => ({
-          id: String(item.url || item.title || idx),
-          title: String(item.title || 'Unknown Track'),
-          artist: String(item.uploaderName || 'Unknown Artist'),
-          thumbnail: String(item.thumbnail || `https://picsum.photos/seed/thumb-${idx}/640/640`),
-          avatar: String(item.uploaderAvatar || `https://picsum.photos/seed/avatar-${idx}/120/120`),
-          url: item.url ? String(item.url) : undefined,
-        });
-
-        const trending = asList(trendingRaw).slice(0, 24).map(toTrack);
-        const darkVibes = darkRaw.slice(0, 20).map(toTrack);
-        const moods = moodRaw.slice(0, 20).map(toTrack);
-        const recentSpino = [...weeklyMix].slice(0, 20);
-
-        const nextSections: Section[] = [];
-        if (weeklyMix.length) nextSections.push({id: 'weeklyMix', title: 'Weekly Vibe Mix', tracks: weeklyMix});
-        nextSections.push({id: 'trending', title: 'Trending Now', tracks: trending});
-        if (darkVibes.length) nextSections.push({id: 'darkIndustrial', title: 'Dark Industrial Vibes', tracks: darkVibes});
-        if (recentSpino.length) nextSections.push({id: 'spino', title: 'Recent Spino', tracks: recentSpino});
-        if (moods.length) nextSections.push({id: 'moods', title: 'Mood: Neon Trap', tracks: moods});
-
-        setSections(nextSections);
-        setStatus(isSynced ? 'Synced premium home loaded' : 'Guest premium home loaded');
-      } catch (feedError) {
-        setError(feedError instanceof Error ? feedError.message : 'Failed to load home feed');
-        setStatus('Failed to load');
-        setSections([]);
-      } finally {
-        setLoading(false);
+        await refreshMixIfNeeded();
+        darkRaw = (await PipedClient.search('dark industrial phonk', 'music_songs')) as Array<Record<string, unknown>>;
+        moodRaw = (await PipedClient.search('dark trap mood', 'music_songs')) as Array<Record<string, unknown>>;
+      } catch {
+        // Non-fatal: keep trending + any existing mix.
       }
-    };
+
+      const toTrack = (item: Record<string, unknown>, idx: number): MixTrack => ({
+        id: String(item.url || item.title || idx),
+        title: String(item.title || 'Unknown Track'),
+        artist: String(item.uploaderName || 'Unknown Artist'),
+        thumbnail: String(item.thumbnail || `https://picsum.photos/seed/thumb-${idx}/640/640`),
+        avatar: String(item.uploaderAvatar || `https://picsum.photos/seed/avatar-${idx}/120/120`),
+        url: item.url ? String(item.url) : undefined,
+      });
+
+      const trending = asList(trendingRaw).slice(0, 24).map(toTrack);
+      const darkVibes = darkRaw.slice(0, 20).map(toTrack);
+      const moods = moodRaw.slice(0, 20).map(toTrack);
+      const recentSpino = [...weeklyMix].slice(0, 20);
+
+      const nextSections: Section[] = [];
+      if (weeklyMix.length) nextSections.push({id: 'weeklyMix', title: 'Weekly Vibe Mix', tracks: weeklyMix});
+      nextSections.push({id: 'trending', title: 'Trending Now', tracks: trending});
+      if (darkVibes.length) nextSections.push({id: 'darkIndustrial', title: 'Dark Industrial Vibes', tracks: darkVibes});
+      if (recentSpino.length) nextSections.push({id: 'spino', title: 'Recent Spino', tracks: recentSpino});
+      if (moods.length) nextSections.push({id: 'moods', title: 'Mood: Neon Trap', tracks: moods});
+
+      setSections(nextSections);
+      setStatus(isSynced ? 'Synced premium home loaded' : 'Guest premium home loaded');
+    } catch {
+      setError('Failed to load. Tap retry.');
+      setStatus('Failed to load');
+      setSections([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     void loadFeed();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isSynced]);
@@ -153,7 +154,10 @@ export function HomeScreen(): React.JSX.Element {
       {error ? (
         <View style={[styles.errorCard, {backgroundColor: colors.surface, borderColor: colors.border}]}>
           <Text style={{color: '#FF7A8D', fontWeight: '800'}}>Failed to Load</Text>
-          <Text style={{color: colors.mutedText, marginTop: 4}}>{error}</Text>
+          <Text style={{color: colors.mutedText, marginTop: 4}}>Failed to load, retry?</Text>
+          <Pressable onPress={() => void loadFeed()} style={[styles.retryBtn, {backgroundColor: colors.accent}]}>
+            <Text style={styles.retryText}>Retry</Text>
+          </Pressable>
         </View>
       ) : null}
       <ScrollView contentContainerStyle={[styles.list, {paddingBottom: spacing * 3}]}>
@@ -218,4 +222,6 @@ const styles = StyleSheet.create({
   track: {fontWeight: '700'},
   artist: {fontSize: 11, marginTop: 2},
   errorCard: {borderWidth: 1, borderRadius: 12, padding: 10, marginTop: 8},
+  retryBtn: {marginTop: 10, alignSelf: 'flex-start', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8},
+  retryText: {color: '#FFFFFF', fontWeight: '700'},
 });

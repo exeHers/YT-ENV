@@ -30,7 +30,7 @@ export const PipedClient = {
       Accept: 'application/json, text/plain;q=0.9, */*;q=0.8',
       ...options.headers,
     });
-    let lastError = 'Unknown request failure';
+    let lastError = 'Failed to load music data. Please retry.';
 
     for (const base of orderedInstances) {
       const url = `${base}${endpoint}`;
@@ -38,12 +38,9 @@ export const PipedClient = {
         debugLog('info', `REQ ${url}`);
         const response = await fetch(url, {...options, headers});
         if (!response.ok) {
-          lastError = `Mali Error: ${response.status} at ${endpoint}`;
+          lastError = `Request failed (${response.status}) on ${endpoint}`;
           debugLog('error', `${lastError} via ${base}`);
-          if (response.status === 404 || response.status >= 500) {
-            continue;
-          }
-          throw new Error(lastError);
+          continue;
         }
         if (base !== currentInstance) {
           useDebugStore.getState().setInstance(base);
@@ -55,7 +52,7 @@ export const PipedClient = {
         debugLog('error', `${lastError} via ${base}`);
       }
     }
-    throw new Error(lastError);
+    throw new Error('Failed to load music data. Please retry.');
   },
 
   // --- PUBLIC SEARCH & TRENDING ---

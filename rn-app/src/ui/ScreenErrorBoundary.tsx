@@ -23,9 +23,9 @@ export class ScreenErrorBoundary extends React.Component<Props, State> {
     return (
       <View style={styles.root}>
         <Text style={styles.title}>Failed to Load</Text>
-        <Text style={styles.subtitle}>{`${this.props.name} hit an error: ${this.state.errorMessage}`}</Text>
+        <Text style={styles.subtitle}>{`${this.props.name} failed to load. Retry?`}</Text>
         <Pressable style={styles.button} onPress={() => this.setState({hasError: false, errorMessage: ''})}>
-          <Text style={styles.buttonText}>Try Again</Text>
+          <Text style={styles.buttonText}>Retry</Text>
         </Pressable>
       </View>
     );

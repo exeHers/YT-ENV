@@ -1,6 +1,7 @@
 import React, {useMemo, useState} from 'react';
-import {Pressable, SafeAreaView, StyleSheet, Text, TextInput, View} from 'react-native';
+import {Pressable, StyleSheet, Text, TextInput, View} from 'react-native';
 import {FlashList} from '@shopify/flash-list';
+import {SafeAreaView} from 'react-native-safe-area-context';
 
 type SourceType = 'piped' | 'local' | 'playlist';
 type ResultItem = {id: string; title: string; source: SourceType};

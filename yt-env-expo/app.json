@@ -1,6 +1,7 @@
 {
   "expo": {
     "name": "YT ENV",
+    "displayName": "YT ENV",
     "slug": "yt-env-expo",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -16,6 +17,7 @@
       "supportsTablet": true
     },
     "android": {
+      "icon": "C:/Users/donov/Desktop/YT ENV/image_4.png",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"

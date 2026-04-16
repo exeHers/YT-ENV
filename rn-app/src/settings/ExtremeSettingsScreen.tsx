@@ -12,6 +12,14 @@ type Props = {
 
 export function ExtremeSettingsScreen({onOpenSync}: Props): React.JSX.Element {
   const colors = useThemeStore(state => state.colors);
+  const edgeColor = useThemeStore(state => state.edgeColor);
+  const edgeSpeedMs = useThemeStore(state => state.edgeSpeedMs);
+  const edgeThickness = useThemeStore(state => state.edgeThickness);
+  const edgeGlowOpacity = useThemeStore(state => state.edgeGlowOpacity);
+  const setEdgeColor = useThemeStore(state => state.setEdgeColor);
+  const setEdgeSpeedMs = useThemeStore(state => state.setEdgeSpeedMs);
+  const setEdgeThickness = useThemeStore(state => state.setEdgeThickness);
+  const setEdgeGlowOpacity = useThemeStore(state => state.setEdgeGlowOpacity);
   const settingsValues = useSettingsStore(state => state.values);
   const setSettingsValue = useSettingsStore(state => state.setValue);
   const clearCache = useSettingsStore(state => state.clearCache);
@@ -86,10 +94,10 @@ export function ExtremeSettingsScreen({onOpenSync}: Props): React.JSX.Element {
         </View>
         <View style={[styles.section, {backgroundColor: colors.surface, borderColor: colors.border}]}>
           <Text style={[styles.sectionTitle, {color: colors.accent}]}>Edge Light Controller</Text>
-          <HexRow label="Color" value={String(settingsValues['edgeLight.color'] || '#BD00FF')} onChange={value => setSettingsValue('edgeLight.color', value)} colors={colors} />
-          <AdjustRow label="Speed (ms)" value={Number(settingsValues['edgeLight.speed'] || 1800)} onMinus={() => setSettingsValue('edgeLight.speed', Math.max(500, Number(settingsValues['edgeLight.speed'] || 1800) - 100))} onPlus={() => setSettingsValue('edgeLight.speed', Math.min(5000, Number(settingsValues['edgeLight.speed'] || 1800) + 100))} colors={colors} />
-          <AdjustRow label="Thickness" value={Number(settingsValues['edgeLight.thickness'] || 3)} onMinus={() => setSettingsValue('edgeLight.thickness', Math.max(1, Number(settingsValues['edgeLight.thickness'] || 3) - 1))} onPlus={() => setSettingsValue('edgeLight.thickness', Math.min(12, Number(settingsValues['edgeLight.thickness'] || 3) + 1))} colors={colors} />
-          <AdjustRow label="Glow Opacity x100" value={Math.round(Number(settingsValues['edgeLight.glowOpacity'] || 0.45) * 100)} onMinus={() => setSettingsValue('edgeLight.glowOpacity', Math.max(0.1, Number(settingsValues['edgeLight.glowOpacity'] || 0.45) - 0.05))} onPlus={() => setSettingsValue('edgeLight.glowOpacity', Math.min(1, Number(settingsValues['edgeLight.glowOpacity'] || 0.45) + 0.05))} colors={colors} />
+          <HexRow label="Color" value={edgeColor} onChange={setEdgeColor} colors={colors} />
+          <AdjustRow label="Speed (ms)" value={edgeSpeedMs} onMinus={() => setEdgeSpeedMs(edgeSpeedMs - 150)} onPlus={() => setEdgeSpeedMs(edgeSpeedMs + 150)} colors={colors} />
+          <AdjustRow label="Thickness" value={edgeThickness} onMinus={() => setEdgeThickness(edgeThickness - 1)} onPlus={() => setEdgeThickness(edgeThickness + 1)} colors={colors} />
+          <AdjustRow label="Pulse x100" value={Math.round(edgeGlowOpacity * 100)} onMinus={() => setEdgeGlowOpacity(edgeGlowOpacity - 0.05)} onPlus={() => setEdgeGlowOpacity(edgeGlowOpacity + 0.05)} colors={colors} />
         </View>
         <View style={[styles.section, {backgroundColor: colors.surface, borderColor: colors.border}]}>
           <Text style={[styles.sectionTitle, {color: colors.accent}]}>External Equalizer</Text>

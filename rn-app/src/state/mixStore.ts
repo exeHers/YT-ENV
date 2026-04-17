@@ -8,6 +8,7 @@ export type MixTrack = {
   thumbnail: string;
   avatar: string;
   url?: string;
+  streamUrl?: string;
 };
 
 type MixState = {

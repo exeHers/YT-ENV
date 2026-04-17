@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useState} from 'react';
 import {Pressable, ScrollView, StyleSheet, Text, View} from 'react-native';
 import {useDebugStore} from '../state/debugStore';
 import {useSettingsStore} from '../state/settingsStore';
@@ -14,6 +14,8 @@ export function DebugScreen(): React.JSX.Element {
   const setInstance = useDebugStore(state => state.setInstance);
   const clearLogs = useDebugStore(state => state.clearLogs);
   const wipeMmkv = useDebugStore(state => state.wipeMmkv);
+  const resetRuntimeState = useDebugStore(state => state.resetRuntimeState);
+  const [runtimeStatus, setRuntimeStatus] = useState('Ready');
 
   return (
     <ScrollView style={[styles.root, {backgroundColor: colors.background}]} contentContainerStyle={styles.content}>
@@ -34,12 +36,31 @@ export function DebugScreen(): React.JSX.Element {
 
       <View style={[styles.section, {backgroundColor: colors.surface, borderColor: colors.border}]}>
         <Text style={[styles.sectionTitle, {color: colors.accent}]}>Runtime Actions</Text>
-        <Pressable style={styles.button} onPress={wipeMmkv}>
+        <Pressable
+          style={styles.button}
+          onPress={() => {
+            const status = wipeMmkv();
+            setRuntimeStatus(status);
+          }}>
           <Text style={styles.buttonText}>Wipe MMKV Cache</Text>
         </Pressable>
-        <Pressable style={styles.button} onPress={clearLogs}>
+        <Pressable
+          style={styles.button}
+          onPress={() => {
+            const status = resetRuntimeState();
+            setRuntimeStatus(status);
+          }}>
+          <Text style={styles.buttonText}>Reset Runtime State</Text>
+        </Pressable>
+        <Pressable
+          style={styles.button}
+          onPress={() => {
+            clearLogs();
+            setRuntimeStatus('Debug logs cleared');
+          }}>
           <Text style={styles.buttonText}>Clear Logs</Text>
         </Pressable>
+        <Text style={[styles.log, {color: colors.mutedText}]}>Status: {runtimeStatus}</Text>
       </View>
 
       <View style={[styles.section, {backgroundColor: colors.surface, borderColor: colors.border}]}>

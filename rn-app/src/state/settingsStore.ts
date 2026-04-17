@@ -24,6 +24,7 @@ const defaults: SettingsMap = {
   'mali.imageQuality': 'high',
   'mali.cacheLimitMb': 1024,
   'mali.storageUsedMb': 412,
+  'mali.lastCacheClearAt': 0,
   'mali.instance': 'auto',
   'edgeLight.color': '#BD00FF',
   'edgeLight.speed': 1800,
@@ -32,6 +33,8 @@ const defaults: SettingsMap = {
   'connect.lastfm': false,
   'connect.genius': false,
   'connect.discordRichPresence': false,
+  'branding.buildAppName': 'YT ENV',
+  'branding.buildIconPath': './assets/image_4.png',
 };
 
 type SettingsState = {
@@ -64,6 +67,8 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       values: {
         ...state.values,
         'mali.cacheSizeMb': 0,
+        'mali.storageUsedMb': 0,
+        'mali.lastCacheClearAt': Date.now(),
       },
     })),
   exportEnv: () => {

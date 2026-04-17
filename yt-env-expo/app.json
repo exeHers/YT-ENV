@@ -5,11 +5,11 @@
     "slug": "yt-env-expo",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/image_4.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/image_4.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -17,9 +17,9 @@
       "supportsTablet": true
     },
     "android": {
-      "icon": "C:/Users/donov/Desktop/YT ENV/image_4.png",
+      "icon": "./assets/image_4.png",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/image_4.png",
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,

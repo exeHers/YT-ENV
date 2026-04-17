@@ -1,5 +1,5 @@
 import React, {useEffect, useMemo, useState} from 'react';
-import {Modal, Pressable, StyleSheet, Text, View} from 'react-native';
+import {Image, Modal, Pressable, StyleSheet, Text, View} from 'react-native';
 import {SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
 import {PluginRegistry} from './src/plugins/Plugin';
 import {AuthPlugin, AuthProvider, AuthSession} from './src/plugins/auth/AuthPlugin';
@@ -18,6 +18,7 @@ import {useSettingsStore} from './src/state/settingsStore';
 import {TabId, useThemeStore} from './src/state/themeStore';
 import {DebugScreen} from './src/debug/DebugScreen';
 import {ScreenErrorBoundary} from './src/ui/ScreenErrorBoundary';
+import {MiniPlayer} from './src/ui/MiniPlayer';
 
 class PlaceholderAuthProvider implements AuthProvider {
   async startSignIn(): Promise<AuthSession> {
@@ -43,9 +44,11 @@ export default function App(): React.JSX.Element {
   const tabLayout = useThemeStore(state => state.tabLayout);
   const colors = useThemeStore(state => state.colors);
   const appName = useThemeStore(state => state.appName);
+  const appLogoUri = useThemeStore(state => state.appLogoUri);
   const textScale = useThemeStore(state => state.textScale);
   const radius = useThemeStore(state => state.radius);
   const tabBarOpacity = useThemeStore(state => state.tabBarOpacity);
+  const uiRevision = useThemeStore(state => state.uiRevision);
   const refreshRate = Number(useSettingsStore(state => state.values['canvas.refreshRate']) || 120);
 
   const services = useMemo(() => {
@@ -97,6 +100,7 @@ export default function App(): React.JSX.Element {
 
   return (
       <SafeAreaView
+        key={`ui-${uiRevision}`}
         style={[
           styles.root,
           {
@@ -158,8 +162,12 @@ export default function App(): React.JSX.Element {
       </Modal>
       <SyncSuccessOverlay visible={showSyncSuccess} />
       <EdgeLightWrapper active />
+      <MiniPlayer />
       <View style={styles.appBadge}>
-        <Text style={[styles.appBadgeText, {fontSize: 11 * textScale}]}>{appName}</Text>
+        <Image source={{uri: appLogoUri}} style={styles.appBadgeIcon} />
+        <Text style={[styles.appBadgeText, {fontSize: 11 * textScale}]} numberOfLines={1}>
+          {appName}
+        </Text>
       </View>
       <View style={styles.hzBadge}>
         <Text style={styles.hzText}>{`${refreshRate}Hz`}</Text>
@@ -178,9 +186,17 @@ function Tab({
   onPress: (id: TabId) => void;
 }): React.JSX.Element {
   const active = activeTab === id;
+  const colors = useThemeStore(state => state.colors);
+  const textScale = useThemeStore(state => state.textScale);
   return (
-    <Pressable style={[styles.tab, active && styles.tabActive, {borderRadius: useThemeStore.getState().radius}]} onPress={() => onPress(id)}>
-      <Text style={[styles.tabText, active && styles.tabTextActive]}>{id.toUpperCase()}</Text>
+    <Pressable
+      style={[
+        styles.tab,
+        {borderRadius: useThemeStore.getState().radius, borderColor: colors.border},
+        active && [styles.tabActive, {backgroundColor: `${colors.accent}44`, borderColor: colors.accent}],
+      ]}
+      onPress={() => onPress(id)}>
+      <Text style={[styles.tabText, {fontSize: 12 * textScale}, active && [styles.tabTextActive, {color: colors.text}]}>{id.toUpperCase()}</Text>
     </Pressable>
   );
 }
@@ -189,15 +205,28 @@ const styles = StyleSheet.create({
   root: {flex: 1},
   body: {flex: 1},
   tabRow: {flexDirection: 'row', gap: 6, paddingHorizontal: 8, paddingBottom: 8},
-  tab: {flex: 1, backgroundColor: 'rgba(255,255,255,0.08)', paddingVertical: 9, alignItems: 'center'},
-  tabActive: {backgroundColor: 'rgba(189,0,255,0.34)'},
+  tab: {flex: 1, backgroundColor: 'rgba(255,255,255,0.06)', paddingVertical: 9, alignItems: 'center', borderWidth: 1},
+  tabActive: {backgroundColor: 'rgba(255,255,255,0.14)'},
   tabText: {color: '#AFAFAF', fontWeight: '700', fontSize: 12},
   tabTextActive: {color: '#FFFFFF'},
   center: {flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20},
   loadingText: {marginTop: 12, color: '#BBBBBB', fontSize: 13},
   errorTitle: {color: '#FF4D67', fontWeight: '700', fontSize: 18},
   errorBody: {marginTop: 8, color: '#CCCCCC', textAlign: 'center'},
-  appBadge: {position: 'absolute', left: 10, bottom: 10, backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4},
+  appBadge: {
+    position: 'absolute',
+    left: 10,
+    bottom: 10,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    maxWidth: 170,
+  },
+  appBadgeIcon: {width: 16, height: 16, borderRadius: 8},
   appBadgeText: {color: '#FFFFFF', fontWeight: '700'},
   hzBadge: {position: 'absolute', right: 10, bottom: 10, backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4},
   hzText: {color: '#BD00FF', fontSize: 11, fontWeight: '800'},

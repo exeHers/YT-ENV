@@ -2,6 +2,100 @@
 import { withAuthHeaders } from './authMiddleware';
 import {debugLog, useDebugStore} from '../state/debugStore';
 
+const WEB_REQUEST_TIMEOUT_MS = 3500;
+const DEFAULT_REQUEST_TIMEOUT_MS = 10000;
+const WEB_PROXY_BASE =
+  typeof process !== 'undefined' && process.env?.EXPO_PUBLIC_PIPED_PROXY_URL
+    ? String(process.env.EXPO_PUBLIC_PIPED_PROXY_URL)
+    : 'http://localhost:8787';
+
+const isWebRuntime = (): boolean => typeof window !== 'undefined' && typeof document !== 'undefined';
+
+type ItunesResult = {
+  trackName?: string;
+  artistName?: string;
+  artworkUrl100?: string;
+  trackId?: number;
+  previewUrl?: string;
+};
+
+const toItunesTrack = (item: ItunesResult, idx: number): Record<string, unknown> => {
+  const cover = item.artworkUrl100 ? item.artworkUrl100.replace('100x100bb', '600x600bb') : undefined;
+  const id = String(item.trackId || `${item.trackName || 'track'}-${idx}`);
+  return {
+    title: item.trackName || `Track ${idx + 1}`,
+    uploaderName: item.artistName || 'Unknown Artist',
+    uploaderAvatar: `https://picsum.photos/seed/artist-${encodeURIComponent(item.artistName || 'unknown')}/120/120`,
+    thumbnail: cover || `https://picsum.photos/seed/cover-${id}/640/640`,
+    url: `/watch?v=itunes-${id}`,
+    streamUrl: item.previewUrl,
+  };
+};
+
+const fetchItunesFallback = async (term: string, limit: number): Promise<Array<Record<string, unknown>>> => {
+  try {
+    const url = `https://itunes.apple.com/search?term=${encodeURIComponent(term)}&entity=song&limit=${limit}`;
+    const response = await fetch(url);
+    if (!response.ok) return [];
+    const body = (await response.json()) as {results?: ItunesResult[]};
+    if (!Array.isArray(body.results) || body.results.length === 0) return [];
+    return body.results.map(toItunesTrack);
+  } catch {
+    return [];
+  }
+};
+
+const webFallbackPayload = async (endpoint: string): Promise<unknown | null> => {
+  if (!isWebRuntime()) return null;
+
+  if (endpoint.startsWith('/trending')) {
+    return fetchItunesFallback('top global hits', 24);
+  }
+  if (endpoint.startsWith('/search')) {
+    const query = endpoint.split('?')[1] ?? '';
+    const params = new URLSearchParams(query);
+    const term = params.get('q')?.slice(0, 48) || 'popular music';
+    return fetchItunesFallback(term, 20);
+  }
+  if (endpoint.startsWith('/streams/')) {
+    return {duration: 212, audioStreams: [{url: 'mock://audio/1'}, {url: 'mock://audio/2'}]};
+  }
+  if (endpoint.startsWith('/suggestions/')) {
+    return fetchItunesFallback('music recommendations', 12);
+  }
+  if (endpoint.startsWith('/playlists')) {
+    return [];
+  }
+  return null;
+};
+
+const getRequestCandidates = (base: string, endpoint: string): Array<{url: string; label: string}> => {
+  const target = `${base}${endpoint}`;
+  if (!isWebRuntime()) {
+    return [{url: target, label: base}];
+  }
+
+  const normalizedProxy = WEB_PROXY_BASE.replace(/\/$/, '');
+  const proxied = `${normalizedProxy}/proxy?url=${encodeURIComponent(target)}`;
+  return [
+    {url: proxied, label: `${base} via local-proxy`},
+    {url: target, label: base},
+  ];
+};
+
+const fetchWithTimeout = async (url: string, init: RequestInit, timeoutMs: number): Promise<Response> => {
+  if (isWebRuntime()) {
+    return fetch(url, init);
+  }
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, {...init, signal: controller.signal});
+  } finally {
+    clearTimeout(timeout);
+  }
+};
+
 const parseJsonBody = async (
   response: Response,
   endpoint: string,
@@ -33,24 +127,40 @@ export const PipedClient = {
     let lastError = 'Failed to load music data. Please retry.';
 
     for (const base of orderedInstances) {
-      const url = `${base}${endpoint}`;
-      try {
-        debugLog('info', `REQ ${url}`);
-        const response = await fetch(url, {...options, headers});
-        if (!response.ok) {
-          lastError = `Request failed (${response.status}) on ${endpoint}`;
-          debugLog('error', `${lastError} via ${base}`);
-          continue;
+      const requestCandidates = getRequestCandidates(base, endpoint);
+      for (const candidate of requestCandidates) {
+        try {
+          debugLog('info', `REQ ${candidate.url}`);
+          const timeoutMs = isWebRuntime() ? WEB_REQUEST_TIMEOUT_MS : DEFAULT_REQUEST_TIMEOUT_MS;
+          const response = await fetchWithTimeout(candidate.url, {...options, headers}, timeoutMs);
+          if (!response.ok) {
+            lastError = `Request failed (${response.status}) on ${endpoint}`;
+            debugLog('error', `${lastError} via ${candidate.label}`);
+            const isImmediateFailure =
+              response.status === 401 ||
+              response.status === 403 ||
+              response.status === 429 ||
+              (response.status >= 400 && response.status < 500 && response.status !== 404);
+            if (isImmediateFailure) {
+              throw new Error(lastError);
+            }
+            continue;
+          }
+          if (base !== currentInstance) {
+            useDebugStore.getState().setInstance(base);
+            debugLog('info', `Switched active instance -> ${base}`);
+          }
+          return await parseJsonBody(response, endpoint, candidate.label);
+        } catch (error) {
+          lastError = error instanceof Error ? error.message : 'Request failed';
+          debugLog('error', `${lastError} via ${candidate.label}`);
         }
-        if (base !== currentInstance) {
-          useDebugStore.getState().setInstance(base);
-          debugLog('info', `Switched active instance -> ${base}`);
-        }
-        return await parseJsonBody(response, endpoint, base);
-      } catch (error) {
-        lastError = error instanceof Error ? error.message : 'Request failed';
-        debugLog('error', `${lastError} via ${base}`);
       }
+    }
+    const fallback = await webFallbackPayload(endpoint);
+    if (fallback !== null) {
+      debugLog('info', `Using web fallback payload for ${endpoint}`);
+      return fallback;
     }
     throw new Error('Failed to load music data. Please retry.');
   },
@@ -66,7 +176,7 @@ export const PipedClient = {
   },
 
   async getStream(videoId: string) {
-    return this.request(`/streams/${videoId}`);
+    return this.request(`/streams/${encodeURIComponent(videoId)}`);
   },
 
   // --- AUTHENTICATED ACTIONS (SYNCED TO YT) ---
@@ -74,6 +184,12 @@ export const PipedClient = {
   async likeVideo(videoId: string) {
     // This will now sync to your actual YT account because of the headers
     return this.request(`/like/${videoId}`, {
+      method: 'POST',
+    });
+  },
+
+  async dislikeVideo(videoId: string) {
+    return this.request(`/dislike/${videoId}`, {
       method: 'POST',
     });
   },

@@ -4,6 +4,7 @@ export type TabId = 'home' | 'library' | 'dashboard' | 'creation' | 'settings' |
 
 type ThemeState = {
   appName: string;
+  appLogoUri: string;
   fontFamily: string;
   textScale: number;
   radius: number;
@@ -24,6 +25,7 @@ type ThemeState = {
   };
   tabLayout: TabId[];
   setAppName: (name: string) => void;
+  setAppLogoUri: (uri: string) => void;
   setFontFamily: (font: string) => void;
   setTextScale: (scale: number) => void;
   setRadius: (radius: number) => void;
@@ -36,32 +38,39 @@ type ThemeState = {
   setEdgeSpeedMs: (value: number) => void;
   setEdgeThickness: (value: number) => void;
   setEdgeGlowOpacity: (value: number) => void;
+  resetTheme: () => void;
+  uiRevision: number;
+  bumpUiRevision: () => void;
 };
 
 const defaultLayout: TabId[] = ['home', 'library', 'dashboard', 'creation', 'settings', 'debug'];
+const defaultColors = {
+  background: '#05070D',
+  surface: '#101726',
+  text: '#F6FAFF',
+  mutedText: '#9CB4D4',
+  accent: '#00D1FF',
+  border: '#204772',
+} as const;
 
 export const useThemeStore = create<ThemeState>(set => ({
-  appName: 'YT ENV',
+  appName: 'YT ENV Music',
+  appLogoUri: 'https://picsum.photos/seed/ytenv-logo/128/128',
   fontFamily: 'System',
   textScale: 1,
-  radius: 12,
+  radius: 14,
   spacing: 12,
   glassBlur: 14,
-  tabBarOpacity: 0.9,
-  edgeColor: '#BD00FF',
+  tabBarOpacity: 0.94,
+  edgeColor: '#00D1FF',
   edgeSpeedMs: 2600,
   edgeThickness: 3,
   edgeGlowOpacity: 0.4,
-  colors: {
-    background: '#060606',
-    surface: '#141414',
-    text: '#F3F3F3',
-    mutedText: '#9F9F9F',
-    accent: '#BD00FF',
-    border: '#262626',
-  },
+  uiRevision: 0,
+  colors: defaultColors,
   tabLayout: defaultLayout,
   setAppName: appName => set({appName}),
+  setAppLogoUri: appLogoUri => set({appLogoUri}),
   setFontFamily: fontFamily => set({fontFamily}),
   setTextScale: textScale => set({textScale}),
   setRadius: radius => set({radius}),
@@ -83,4 +92,23 @@ export const useThemeStore = create<ThemeState>(set => ({
   setEdgeSpeedMs: edgeSpeedMs => set({edgeSpeedMs: Math.max(1200, edgeSpeedMs)}),
   setEdgeThickness: edgeThickness => set({edgeThickness: Math.max(1, edgeThickness)}),
   setEdgeGlowOpacity: edgeGlowOpacity => set({edgeGlowOpacity: Math.min(1, Math.max(0.1, edgeGlowOpacity))}),
+  resetTheme: () =>
+    set({
+      appName: 'YT ENV Music',
+      appLogoUri: 'https://picsum.photos/seed/ytenv-logo/128/128',
+      fontFamily: 'System',
+      textScale: 1,
+      radius: 14,
+      spacing: 12,
+      glassBlur: 14,
+      tabBarOpacity: 0.94,
+      edgeColor: '#00D1FF',
+      edgeSpeedMs: 2600,
+      edgeThickness: 3,
+      edgeGlowOpacity: 0.4,
+      colors: defaultColors,
+      tabLayout: defaultLayout,
+      uiRevision: 0,
+    }),
+  bumpUiRevision: () => set(state => ({uiRevision: state.uiRevision + 1})),
 }));

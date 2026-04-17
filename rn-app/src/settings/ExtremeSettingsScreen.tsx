@@ -1,10 +1,9 @@
 import React, {useState} from 'react';
-import {Linking, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View} from 'react-native';
+import {Linking, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View} from 'react-native';
 import {SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
 import {SyncBadge} from '../ui/SyncBadge';
 import {useSettingsStore} from '../state/settingsStore';
 import {useThemeStore} from '../state/themeStore';
-import {useDebugStore} from '../state/debugStore';
 
 type Props = {
   onOpenSync: () => void;
@@ -23,10 +22,8 @@ export function ExtremeSettingsScreen({onOpenSync}: Props): React.JSX.Element {
   const settingsValues = useSettingsStore(state => state.values);
   const setSettingsValue = useSettingsStore(state => state.setValue);
   const clearCache = useSettingsStore(state => state.clearCache);
-  const instances = useDebugStore(state => state.instances);
-  const currentInstance = useDebugStore(state => state.currentInstance);
-  const setInstance = useDebugStore(state => state.setInstance);
   const [eqStatus, setEqStatus] = useState('External EQ idle');
+  const [cacheStatus, setCacheStatus] = useState('');
   const insets = useSafeAreaInsets();
 
   const openExternalEqualizer = async () => {
@@ -58,14 +55,9 @@ export function ExtremeSettingsScreen({onOpenSync}: Props): React.JSX.Element {
         </Pressable>
         <View style={[styles.section, {backgroundColor: colors.surface, borderColor: colors.border}]}>
           <Text style={[styles.sectionTitle, {color: colors.accent}]}>API Instance</Text>
-          {instances.map(item => (
-            <Pressable key={item} style={[styles.row, {borderColor: colors.border}]} onPress={() => setInstance(item)}>
-              <Text style={[styles.title, {color: colors.text, flex: 1}]} numberOfLines={1}>{item}</Text>
-              <Text style={{color: item === currentInstance ? colors.accent : colors.mutedText}}>
-                {item === currentInstance ? 'ACTIVE' : 'Use'}
-              </Text>
-            </Pressable>
-          ))}
+          <Text style={[styles.description, {color: colors.mutedText}]}>
+            API instance switching is managed in the Debug tab to avoid duplicate controls.
+          </Text>
         </View>
         <View style={[styles.section, {backgroundColor: colors.surface, borderColor: colors.border}]}>
           <Text style={[styles.sectionTitle, {color: colors.accent}]}>Audio Quality</Text>
@@ -81,9 +73,15 @@ export function ExtremeSettingsScreen({onOpenSync}: Props): React.JSX.Element {
           <CycleRow label="Image/Thumbnail Quality" value={String(settingsValues['mali.imageQuality'] || 'high')} options={['low', 'medium', 'high']} onCycle={value => setSettingsValue('mali.imageQuality', value)} colors={colors} />
           <AdjustRow label="Cache Limit (MB)" value={Number(settingsValues['mali.cacheLimitMb'] || 1024)} onMinus={() => setSettingsValue('mali.cacheLimitMb', Math.max(256, Number(settingsValues['mali.cacheLimitMb'] || 1024) - 128))} onPlus={() => setSettingsValue('mali.cacheLimitMb', Math.min(8192, Number(settingsValues['mali.cacheLimitMb'] || 1024) + 128))} colors={colors} />
           <CacheProgress colors={colors} used={Number(settingsValues['mali.storageUsedMb'] || 0)} limit={Number(settingsValues['mali.cacheLimitMb'] || 1024)} />
-          <Pressable style={styles.utilityButton} onPress={clearCache}>
+          <Pressable
+            style={styles.utilityButton}
+            onPress={() => {
+              clearCache();
+              setCacheStatus('Cache cleared successfully.');
+            }}>
             <Text style={styles.utilityButtonText}>Clear cache now</Text>
           </Pressable>
+          {cacheStatus ? <Text style={[styles.description, {color: colors.mutedText}]}>{cacheStatus}</Text> : null}
         </View>
         <View style={[styles.section, {backgroundColor: colors.surface, borderColor: colors.border}]}>
           <Text style={[styles.sectionTitle, {color: colors.accent}]}>UI Behavior</Text>
@@ -146,13 +144,18 @@ function HexRow({
   colors: {text: string; border: string; mutedText: string};
 }): React.JSX.Element {
   return (
-    <Pressable style={[styles.row, {borderColor: colors.border}]} onPress={() => onChange(value === '#BD00FF' ? '#00D1FF' : '#BD00FF')}>
+    <View style={[styles.row, {borderColor: colors.border}]}>
       <View style={styles.textWrap}>
         <Text style={[styles.title, {color: colors.text}]}>{label}</Text>
-        <Text style={[styles.description, {color: colors.mutedText}]}>Tap to cycle hex quick-pick.</Text>
+        <Text style={[styles.description, {color: colors.mutedText}]}>Enter any hex color (e.g. #BD00FF).</Text>
       </View>
-      <Text style={{color: colors.text}}>{value}</Text>
-    </Pressable>
+      <TextInput
+        value={value}
+        onChangeText={onChange}
+        autoCapitalize="characters"
+        style={[styles.hexInput, {color: colors.text, borderColor: colors.border}]}
+      />
+    </View>
   );
 }
 
@@ -268,4 +271,13 @@ const styles = StyleSheet.create({
   progressFill: {height: '100%'},
   adjustRow: {flexDirection: 'row', alignItems: 'center', gap: 8},
   adjustBtn: {width: 28, height: 28, borderWidth: 1, borderRadius: 8, alignItems: 'center', justifyContent: 'center'},
+  hexInput: {
+    width: 110,
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    textAlign: 'center',
+    backgroundColor: 'rgba(255,255,255,0.04)',
+  },
 });

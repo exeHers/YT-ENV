@@ -6,8 +6,8 @@ export function DNVNSplashScreen(): React.JSX.Element {
   return (
     <SafeAreaView style={styles.root}>
       <View style={styles.logoWrap}>
-        <Text style={styles.logo}>DNVN DIGITAL</Text>
-        <Text style={styles.subtitle}>Hydrating Auth + Settings</Text>
+        <Text style={styles.logo}>YT ENV</Text>
+        <Text style={styles.subtitle}>Booting your environment</Text>
       </View>
       <ActivityIndicator size="large" color="#BD00FF" />
     </SafeAreaView>
